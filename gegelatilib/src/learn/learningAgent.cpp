@@ -110,7 +110,7 @@ bool Learn::LearningAgent::isRootEvalSkipped(
 
 std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
     TPG::TPGExecutionEngine& tee, const Job& job, uint64_t generationNumber,
-    Learn::LearningMode mode, LearningEnvironment& le) const
+    Learn::LearningMode mode, LearningEnvironment& le, uint64_t evaluationInterval) const
 {
     // Only consider the first root of jobs as we are not in adversarial mode
     const TPG::TPGVertex* root = job.getRoot();
@@ -125,45 +125,73 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
 
     // Init results
     double result = 0.0;
+ 
+    //Initialize action counter
+    uint64_t totalActions = 0;
 
-    // Evaluate nbIteration times
-    for (auto iterationNumber = 0;
-         iterationNumber < this->params.nbIterationsPerPolicyEvaluation;
-         iterationNumber++) {
+    //Initialize vars
+    bool evalPassed = false;
+    uint64_t bias = 1;
+    uint64_t prevOutcome = 0;
+
         // Compute a Hash
         Data::Hash<uint64_t> hasher;
-        uint64_t hash = hasher(generationNumber) ^ hasher(iterationNumber);
+    uint64_t hash =
+        hasher(0 /* generationNumber*/) ^ hasher(0 /* generationNumber*/);
 
         // Reset the learning Environment
-        le.reset(hash, mode, iterationNumber, generationNumber);
+        if (evalPassed == false) {
+        le.reset(hash, mode, /*iterationNumber =*/0,0 /* generationNumber*/);
+        }
 
-        uint64_t nbActions = 0;
-        while (!le.isTerminal() &&
-               nbActions < this->params.maxNbActionsPerEval) {
+        
+        while (!le.isTerminal()) {
             // Get the action
             uint64_t actionID =
                 ((const TPG::TPGAction*)tee.executeFromRoot(*root).back())
                     ->getActionID();
             // Do it
             le.doAction(actionID);
-            // Count actions
-            nbActions++;
-        }
+            // Increment total actions
+            totalActions++;
 
-        // Update results
-        result += le.getScore();
+            // Check if it's time to perform an evaluation
+            if (totalActions % evaluationInterval == 0) {
+                if (evalPassed == false) {
+                    prevOutcome += le.getScore();
+                }
+                if (le.getScore() > prevOutcome /* + maxPossibleScore ?*/) {
+                    bias = 1 + (prevOutcome /* /  maxPossibleScore */) / 10;
+                }
+                if (le.getScore() < prevOutcome /* + maxPossibleScore ?*/) {
+                    bias = 1 - (prevOutcome /* /  maxPossibleScore */) / 10;
+                }
+                else {
+                    bias = 1;
+                }
+                /*save previous scores (is there a variable or do i just save into variable at end of every evaluation ?*/
+
+
+                result += le.getScore() * bias;
+                prevOutcome = le.getScore();
+                evalPassed = true;
+        }
     }
 
     // Create the EvaluationResult
     auto evaluationResult =
         std::shared_ptr<EvaluationResult>(new EvaluationResult(
-            result / (double)params.nbIterationsPerPolicyEvaluation,
-            params.nbIterationsPerPolicyEvaluation));
+            result,
+            totalActions));
 
     // Combine it with previous one if any
     if (previousEval != nullptr) {
         *evaluationResult += *previousEval;
     }
+
+    // Reset the action counter for the next evaluation interval
+    totalActions = 0;
+
     return evaluationResult;
 }
 
@@ -186,7 +214,7 @@ Learn::LearningAgent::evaluateAllRoots(uint64_t generationNumber,
         auto job = makeJob(roots.at(i), mode);
         this->archive.setRandomSeed(job->getArchiveSeed());
         std::shared_ptr<EvaluationResult> avgScore = this->evaluateJob(
-            *tee, *job, generationNumber, mode, this->learningEnvironment);
+            *tee, *job, generationNumber, mode, this->learningEnvironment, 5);
         result.emplace(avgScore, (*job).getRoot());
     }
 
@@ -217,7 +245,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateOneRoot(
     auto job = makeJob(*iterator, mode);
     this->archive.setRandomSeed(job->getArchiveSeed());
     std::shared_ptr<EvaluationResult> avgScore = this->evaluateJob(
-        *tee, *job, generationNumber, mode, this->learningEnvironment);
+        *tee, *job, generationNumber, mode, this->learningEnvironment, 5);
 
     // Return the result
     return avgScore;
@@ -258,8 +286,7 @@ void Learn::LearningAgent::trainOneGeneration(uint64_t generationNumber)
 
     // Does a validation or not according to the parameter doValidation
     if (params.doValidation) {
-        auto validationResults =
-            evaluateAllRoots(generationNumber, Learn::LearningMode::VALIDATION);
+        auto validationResults = evaluateAllRoots(generationNumber, Learn::LearningMode::VALIDATION);
         for (auto logger : loggers) {
             logger.get().logAfterValidate(validationResults);
         }
@@ -474,4 +501,60 @@ void Learn::LearningAgent::forgetPreviousResults()
     resultsPerRoot.clear();
     bestRoot.first = nullptr;
     bestRoot.second = nullptr;
+}
+
+void Learn::LearningAgent::trainOneAgent(uint64_t generationNumber, uint64_t totalNbDel)
+{
+    int nbdel = 0;
+     for (auto logger : loggers) {
+        logger.get().logNewGeneration(generationNumber);
+    }
+
+    // Populate Sequentially
+    Mutator::TPGMutator::populateTPG(*this->tpg, this->archive,
+                                     this->params.mutation, this->rng,
+                                     maxNbThreads);
+    for (auto logger : loggers) {
+        logger.get().logAfterPopulateTPG();
+    }
+
+    // Evaluate
+    auto results = this->evaluateAllRoots(generationNumber,
+                                          LearningMode::TRAINING);
+    nbdel++;
+    for (auto logger : loggers) {
+        logger.get().logAfterEvaluate(results);
+    }
+
+    // Save the best score
+    this->updateBestScoreLastGen(results);
+
+
+    
+    if (nbdel == totalNbDel) {
+        // Remove worst performing roots
+        decimateWorstRoots(results);
+        // Update the best
+        this->updateEvaluationRecords(results);
+        nbdel = 0;
+    }
+
+
+    for (auto logger : loggers) {
+        logger.get().logAfterDecimate();
+    }
+
+    // Does a validation or not according to the parameter doValidation
+    if (params.doValidation) {
+        auto validationResults =
+            evaluateAllRoots(generationNumber,
+                             Learn::LearningMode::VALIDATION);
+        for (auto logger : loggers) {
+            logger.get().logAfterValidate(validationResults);
+        }
+    }
+
+    for (auto logger : loggers) {
+        logger.get().logEndOfTraining();
+    }
 }
