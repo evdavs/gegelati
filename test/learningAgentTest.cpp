@@ -435,8 +435,8 @@ TEST_F(LearningAgentTest, forgetPreviousResults)
     ASSERT_NO_THROW(la.trainOneGeneration(0))
         << "trainOneGeneration doesn't work after a forgetPreviousResults";
 
-    ASSERT_NO_THROW(la.trainOneAgent())
-        << "trainOneGeneration doesn't work after a forgetPreviousResults";
+    ASSERT_NO_THROW(la.trainOneAgent(0,1))
+        << "trainOneAgent doesn't work after a forgetPreviousResults";
 }
 
 TEST_F(LearningAgentTest, DecimateWorstRoots)
@@ -571,7 +571,7 @@ TEST_F(LearningAgentTest, trainOneAgent)
                                      la.getRNG(), 1);
     size_t initialNbVertex = la.getTPGGraph()->getNbVertices();
     // Seed selected so that an action becomes a root during next generation
-    ASSERT_NO_THROW(la.trainOneAgent())
+    ASSERT_NO_THROW(la.trainOneAgent(0,1))
         << "Training for one generation failed.";
     // Check the number of vertex in the graph.
     // Must be initial number of vertex - number of root removed
@@ -583,7 +583,7 @@ TEST_F(LearningAgentTest, trainOneAgent)
     // Train a second generation, because most roots were removed, a root
     // actions have appeared and the training algorithm will attempt to remove
     // them.
-    ASSERT_NO_THROW(la.trainOneAgent())
+    ASSERT_NO_THROW(la.trainOneAgent(0,1))
         << "Training for one generation failed.";
 
     // Check that bestScoreLastGen has been set
