@@ -160,11 +160,11 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
                 if (evalPassed == false) {
                     prevOutcome += le.getScore();
                 }
-                if (le.getScore() > prevOutcome /* + 5% of maxPossibleScore ?*/) {
-                    bias = 1 + (prevOutcome /* /  maxPossibleScore */) / 10;
+                if (le.getScore() > prevOutcome + 5/100 * prevOutcome) {
+                    bias = 1 + (le.getScore() / prevOutcome ) / 10;
                 }
-                if (le.getScore() < prevOutcome /* - 5% maxPossibleScore ?*/) {
-                    bias = 1 - (prevOutcome /* /  maxPossibleScore */) / 10;
+                if (le.getScore() < prevOutcome - 5/100 * prevOutcome) {
+                    bias = 1 - (le.getScore() / prevOutcome) / 10;
                 }
                 else {
                     bias = 1;
