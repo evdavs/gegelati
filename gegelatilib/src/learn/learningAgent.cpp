@@ -114,7 +114,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
 {
     // Only consider the first root of jobs as we are not in adversarial mode
     const TPG::TPGVertex* root = job.getRoot();
-
+    std::vector<double> previousScores;
     // Skip the root evaluation process if enough evaluations were already
     // performed. In the evaluation mode only.
     std::shared_ptr<Learn::EvaluationResult> previousEval;
@@ -137,7 +137,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
         // Compute a Hash
         Data::Hash<uint64_t> hasher;
     uint64_t hash =
-        hasher(0 /* generationNumber*/) ^ hasher(0 /* generationNumber*/);
+        hasher(generationNumber) ^ hasher(generationNumber);
 
         // Reset the learning Environment
         if (evalPassed == false) {
@@ -169,10 +169,17 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
                 else {
                     bias = 1;
                 }
-                /*save previous scores (is there a variable or do i just save into variable at end of every evaluation ?*/
 
+                // Save previous score
+                previousScores.push_back(prevOutcome);
 
                 result += le.getScore() * bias;
+
+                // modify previous scores depending on new score
+                if (!previousScores.empty()) {
+                    previousScores.back() =
+                        42.0; //
+                }
                 prevOutcome = le.getScore();
                 evalPassed = true;
         }
