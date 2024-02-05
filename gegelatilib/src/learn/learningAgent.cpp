@@ -177,10 +177,11 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
 
                 // modify previous scores depending on new score
                 if (!previousScores.empty()) {
-                    if (le.getScore > )
-                    previousScores.back() =
-                       ; //
+                    if (le.getScore() > 800 && le.getScore() > previousScores.back())
+                        previousScores.back() = previousScores.back() * 1.1; 
                 }
+                if (le.getScore() < 200 && le.getScore() < previousScores.back())
+                    previousScores.back() = previousScores.back() * 0.9;
                 prevOutcome = le.getScore();
                 evalPassed = true;
         }
