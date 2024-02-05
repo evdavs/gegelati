@@ -72,7 +72,7 @@ Learn::ParallelLearningAgent::evaluateAllRoots(uint64_t generationNumber,
             this->archive.setRandomSeed(job->getArchiveSeed());
 
             std::shared_ptr<EvaluationResult> avgScore = this->evaluateJob(
-                *tee, *job, generationNumber, mode, this->learningEnvironment);
+                *tee, *job, generationNumber, mode, this->learningEnvironment,0);
             results.emplace(avgScore, (*job).getRoot());
         }
     }
@@ -137,7 +137,7 @@ void Learn::ParallelLearningAgent::slaveEvalJobThread(
 
             std::shared_ptr<EvaluationResult> avgScore =
                 this->evaluateJob(*tee, *jobToProcess, generationNumber, mode,
-                                  *privateLearningEnvironment);
+                                  *privateLearningEnvironment,0);
 
             { // Store result Mutual exclusion zone
                 std::lock_guard<std::mutex> lock(resultsPerRootMapMutex);
