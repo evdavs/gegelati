@@ -478,7 +478,7 @@ TEST_F(adversarialLearningAgentTest, EvalAllRootsParallelValidationDeterminism)
 
     Learn::AdversarialLearningAgent la(le, set, params);
     la.init(0); // Reset centralized RNG to 0
-    auto results = la.evaluateAllRoots(0, Learn::LearningMode::VALIDATION);
+    auto results = la.evaluateAllRoots(0, Learn::LearningMode::TRAINING);
     auto nextInt = la.getRNG().getUnsignedInt64(0, UINT64_MAX);
 
     Learn::LearningParameters paramsSequential = params;
@@ -487,7 +487,7 @@ TEST_F(adversarialLearningAgentTest, EvalAllRootsParallelValidationDeterminism)
 
     laSequential.init(0); // Reset centralized RNG to 0
     auto resultsSequential =
-        laSequential.evaluateAllRoots(0, Learn::LearningMode::VALIDATION);
+        laSequential.evaluateAllRoots(0, Learn::LearningMode::TRAINING);
     auto nextIntSequential =
         laSequential.getRNG().getUnsignedInt64(0, UINT64_MAX);
 
@@ -497,7 +497,7 @@ TEST_F(adversarialLearningAgentTest, EvalAllRootsParallelValidationDeterminism)
 
     laParallel.init(0); // Reset centralized RNG to 0
     auto resultsParallel =
-        laParallel.evaluateAllRoots(0, Learn::LearningMode::VALIDATION);
+        laParallel.evaluateAllRoots(0, Learn::LearningMode::TRAINING);
     auto nextIntParallel = laParallel.getRNG().getUnsignedInt64(0, UINT64_MAX);
 
     // Check equality between LearningAgent and ParallelLearningAgent

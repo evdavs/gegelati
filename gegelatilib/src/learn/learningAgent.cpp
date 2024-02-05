@@ -177,8 +177,9 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
 
                 // modify previous scores depending on new score
                 if (!previousScores.empty()) {
+                    if (le.getScore > )
                     previousScores.back() =
-                        42.0; //
+                       ; //
                 }
                 prevOutcome = le.getScore();
                 evalPassed = true;
@@ -293,7 +294,7 @@ void Learn::LearningAgent::trainOneGeneration(uint64_t generationNumber)
 
     // Does a validation or not according to the parameter doValidation
     if (params.doValidation) {
-        auto validationResults = evaluateAllRoots(generationNumber, Learn::LearningMode::VALIDATION);
+        auto validationResults = evaluateAllRoots(generationNumber, Learn::LearningMode::TRAINING);
         for (auto logger : loggers) {
             logger.get().logAfterValidate(validationResults);
         }
@@ -555,7 +556,7 @@ void Learn::LearningAgent::trainOneAgent(uint64_t generationNumber, uint64_t tot
     if (params.doValidation) {
         auto validationResults =
             evaluateAllRoots(generationNumber,
-                             Learn::LearningMode::VALIDATION);
+                             Learn::LearningMode::TRAINING);
         for (auto logger : loggers) {
             logger.get().logAfterValidate(validationResults);
         }
