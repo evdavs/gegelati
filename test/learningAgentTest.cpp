@@ -435,6 +435,8 @@ TEST_F(LearningAgentTest, forgetPreviousResults)
     ASSERT_NO_THROW(la.trainOneGeneration(0))
         << "trainOneGeneration doesn't work after a forgetPreviousResults";
 
+    ASSERT_NO_THROW(la.trainOneAgent(0,1))
+        << "trainOneAgent doesn't work after a forgetPreviousResults";
 }
 
 TEST_F(LearningAgentTest, DecimateWorstRoots)
@@ -543,6 +545,63 @@ TEST_F(LearningAgentTest, TrainOnegeneration)
     remove("tempFileForTest");
 }
 
+TEST_F(LearningAgentTest, trainOneAgent)
+{
+    params.archiveSize = 50;
+    params.archivingProbability = 0.5;
+    params.maxNbActionsPerEval = 11;
+    params.nbIterationsPerPolicyEvaluation = 3;
+    params.ratioDeletedRoots =
+        0.95; // high number to force the apparition of root action.
+
+    // we will validate in order to cover validation log
+    params.doValidation = true;
+
+    Learn::LearningAgent la(le, set, params);
+
+    la.init();
+
+    // we add a logger to la to check it logs things
+    std::ofstream o("tempFileForTest", std::ofstream::out);
+    Log::LABasicLogger l(la, o);
+
+    // Do the populate call to keep know the number of initial vertex
+    Archive a(0);
+    Mutator::TPGMutator::populateTPG(*la.getTPGGraph(), a, params.mutation,
+                                     la.getRNG(), 1);
+    size_t initialNbVertex = la.getTPGGraph()->getNbVertices();
+    // Seed selected so that an action becomes a root during next generation
+    ASSERT_NO_THROW(la.trainOneAgent(0,1))
+        << "Training for one generation failed.";
+    // Check the number of vertex in the graph.
+    // Must be initial number of vertex - number of root removed
+    ASSERT_EQ(la.getTPGGraph()->getNbVertices(),
+              initialNbVertex -
+                  floor(params.ratioDeletedRoots * params.mutation.tpg.nbRoots))
+        << "Number of remaining is under the number of roots from the "
+           "TPGGraph.";
+    // Train a second generation, because most roots were removed, a root
+    // actions have appeared and the training algorithm will attempt to remove
+    // them.
+    ASSERT_NO_THROW(la.trainOneAgent(0,1))
+        << "Training for one generation failed.";
+
+    // Check that bestScoreLastGen has been set
+    ASSERT_NE(la.getBestScoreLastGen(), 0.0);
+
+    // Check that bestRoot has been set
+    ASSERT_NE(la.getBestRoot().first, nullptr);
+
+    o.close();
+    std::ifstream i("tempFileForTest", std::ofstream::in);
+    std::string s;
+    i >> s;
+    ASSERT_TRUE(s.size() > 0) << "Logger should have logged elements after a "
+                                 "trainOneAgent iteration.";
+    i.close();
+    // removing the temporary file
+    remove("tempFileForTest");
+}
 
 
 TEST_F(LearningAgentTest, Train)
