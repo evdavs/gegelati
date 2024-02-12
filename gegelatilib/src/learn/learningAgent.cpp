@@ -295,9 +295,10 @@ void Learn::LearningAgent::trainOneGeneration(uint64_t generationNumber)
 
     // Does a validation or not according to the parameter doValidation
     if (params.doValidation) {
-        auto validationResults = evaluateAllRoots(generationNumber, Learn::LearningMode::TRAINING);
+        auto validationResults =
+            evaluateAllRoots(generationNumber, Learn::LearningMode::VALIDATION);
         for (auto logger : loggers) {
-            logger.get().logAfterValidate(validationResults);
+                logger.get().logAfterValidate(validationResults);
         }
     }
 
@@ -510,60 +511,4 @@ void Learn::LearningAgent::forgetPreviousResults()
     resultsPerRoot.clear();
     bestRoot.first = nullptr;
     bestRoot.second = nullptr;
-}
-
-void Learn::LearningAgent::trainOneAgent(uint64_t generationNumber, uint64_t totalNbDel)
-{
-    int nbdel = 0;
-     for (auto logger : loggers) {
-        logger.get().logNewGeneration(generationNumber);
-    }
-
-    // Populate Sequentially
-    Mutator::TPGMutator::populateTPG(*this->tpg, this->archive,
-                                     this->params.mutation, this->rng,
-                                     maxNbThreads);
-    for (auto logger : loggers) {
-        logger.get().logAfterPopulateTPG();
-    }
-
-    // Evaluate
-    auto results = this->evaluateAllRoots(generationNumber,
-                                          LearningMode::TRAINING);
-    nbdel++;
-    for (auto logger : loggers) {
-        logger.get().logAfterEvaluate(results);
-    }
-
-    // Save the best score
-    this->updateBestScoreLastGen(results);
-
-
-    
-    if (nbdel == totalNbDel) {
-        // Remove worst performing roots
-        decimateWorstRoots(results);
-        // Update the best
-        this->updateEvaluationRecords(results);
-        nbdel = 0;
-    }
-
-
-    for (auto logger : loggers) {
-        logger.get().logAfterDecimate();
-    }
-
-    // Does a validation or not according to the parameter doValidation
-    if (params.doValidation) {
-        auto validationResults =
-            evaluateAllRoots(generationNumber,
-                             Learn::LearningMode::TRAINING);
-        for (auto logger : loggers) {
-            logger.get().logAfterValidate(validationResults);
-        }
-    }
-
-    for (auto logger : loggers) {
-        logger.get().logEndOfTraining();
-    }
 }

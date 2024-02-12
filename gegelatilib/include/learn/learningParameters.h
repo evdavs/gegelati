@@ -197,6 +197,9 @@ namespace Learn {
         /// Boolean set to true if the user wants a validation after each
         /// training, and false otherwise
         bool doValidation = false;
+
+        uint64_t totalNbDel = 5;
+        uint64_t totalInteractions = 5;
     } LearningParameters;
 }; // namespace Learn
 

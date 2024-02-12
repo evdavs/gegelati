@@ -205,6 +205,7 @@ namespace Learn {
          * \param[in] le Reference to the LearningEnvironment to use
          * during the policy evaluation (may be different from the attribute of
          * the class in child LearningAgentClass).
+         * \param[in] totalInteractions the number of actions before evaluation
          *
          * \return a std::shared_ptr to the EvaluationResult for the root. If
          * this root was already evaluated more times then the limit in
@@ -216,7 +217,7 @@ namespace Learn {
         virtual std::shared_ptr<EvaluationResult> evaluateJob(
             TPG::TPGExecutionEngine& tee, const Job& job,
             uint64_t generationNumber, LearningMode mode,
-            LearningEnvironment& le) const;
+            LearningEnvironment& le, uint64_t totalInteractions) const;
 
         /**
          * \brief Method detecting whether a root should be evaluated again.
@@ -287,6 +288,7 @@ namespace Learn {
          */
         virtual void trainOneGeneration(uint64_t generationNumber);
 
+
         /**
          * \brief Removes from the TPGGraph the root TPGVertex with the worst
          * results.
@@ -318,7 +320,7 @@ namespace Learn {
          * \param[in] printProgressBar select whether a progress bar will be
          * printed in the console. \return the number of completed generations.
          */
-        uint64_t train(volatile bool& altTraining, bool printProgressBar);
+        virtual uint64_t train(volatile bool& altTraining, bool printProgressBar);
 
         /**
          * \brief Update the bestRoot and resultsPerRoot attributes.
