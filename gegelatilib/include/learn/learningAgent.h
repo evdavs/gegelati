@@ -217,7 +217,7 @@ namespace Learn {
         virtual std::shared_ptr<EvaluationResult> evaluateJob(
             TPG::TPGExecutionEngine& tee, const Job& job,
             uint64_t generationNumber, LearningMode mode,
-            LearningEnvironment& le, uint64_t totalInteractions) const;
+            LearningEnvironment& le) const;
 
         /**
          * \brief Method detecting whether a root should be evaluated again.
