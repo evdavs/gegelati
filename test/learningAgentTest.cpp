@@ -236,7 +236,8 @@ TEST_F(LearningAgentTest, EvalRoot)
     std::shared_ptr<Learn::EvaluationResult> result;
     auto job = *la.makeJob(la.getTPGGraph()->getRootVertices().at(0),
                            Learn::LearningMode::TRAINING);
-    ASSERT_NO_THROW(result = la.evaluateJob(tee, job, 0 , Learn::LearningMode::TRAINING, le, 5))
+    ASSERT_NO_THROW(
+        result = la.evaluateJob(tee, job, 0, Learn::LearningMode::TRAINING, le))
         << "Evaluation from a root failed.";
     ASSERT_LE(result->getResult(), 1.0)
         << "Average score should not exceed the score of a perfect player.";
@@ -434,9 +435,6 @@ TEST_F(LearningAgentTest, forgetPreviousResults)
 
     ASSERT_NO_THROW(la.trainOneGeneration(0))
         << "trainOneGeneration doesn't work after a forgetPreviousResults";
-
-    ASSERT_NO_THROW(la.trainOneAgent(0,1))
-        << "trainOneAgent doesn't work after a forgetPreviousResults";
 }
 
 TEST_F(LearningAgentTest, DecimateWorstRoots)
@@ -544,65 +542,6 @@ TEST_F(LearningAgentTest, TrainOnegeneration)
     // removing the temporary file
     remove("tempFileForTest");
 }
-
-TEST_F(LearningAgentTest, trainOneAgent)
-{
-    params.archiveSize = 50;
-    params.archivingProbability = 0.5;
-    params.maxNbActionsPerEval = 11;
-    params.nbIterationsPerPolicyEvaluation = 3;
-    params.ratioDeletedRoots =
-        0.95; // high number to force the apparition of root action.
-
-    // we will validate in order to cover validation log
-    params.doValidation = true;
-
-    Learn::LearningAgent la(le, set, params);
-
-    la.init();
-
-    // we add a logger to la to check it logs things
-    std::ofstream o("tempFileForTest", std::ofstream::out);
-    Log::LABasicLogger l(la, o);
-
-    // Do the populate call to keep know the number of initial vertex
-    Archive a(0);
-    Mutator::TPGMutator::populateTPG(*la.getTPGGraph(), a, params.mutation,
-                                     la.getRNG(), 1);
-    size_t initialNbVertex = la.getTPGGraph()->getNbVertices();
-    // Seed selected so that an action becomes a root during next generation
-    ASSERT_NO_THROW(la.trainOneAgent(0,1))
-        << "Training for one generation failed.";
-    // Check the number of vertex in the graph.
-    // Must be initial number of vertex - number of root removed
-    ASSERT_EQ(la.getTPGGraph()->getNbVertices(),
-              initialNbVertex -
-                  floor(params.ratioDeletedRoots * params.mutation.tpg.nbRoots))
-        << "Number of remaining is under the number of roots from the "
-           "TPGGraph.";
-    // Train a second generation, because most roots were removed, a root
-    // actions have appeared and the training algorithm will attempt to remove
-    // them.
-    ASSERT_NO_THROW(la.trainOneAgent(0,1))
-        << "Training for one generation failed.";
-
-    // Check that bestScoreLastGen has been set
-    ASSERT_NE(la.getBestScoreLastGen(), 0.0);
-
-    // Check that bestRoot has been set
-    ASSERT_NE(la.getBestRoot().first, nullptr);
-
-    o.close();
-    std::ifstream i("tempFileForTest", std::ofstream::in);
-    std::string s;
-    i >> s;
-    ASSERT_TRUE(s.size() > 0) << "Logger should have logged elements after a "
-                                 "trainOneAgent iteration.";
-    i.close();
-    // removing the temporary file
-    remove("tempFileForTest");
-}
-
 
 TEST_F(LearningAgentTest, Train)
 {
@@ -862,7 +801,7 @@ TEST_F(ParallelLearningAgentTest, EvalRootSequential)
                         tee,
                         *pla.makeJob(tpg.getRootVertices().at(0),
                                      Learn::LearningMode::TRAINING, 0, &tpg),
-                        0, Learn::LearningMode::TRAINING, le, 5))
+                        0, Learn::LearningMode::TRAINING, le))
         << "Evaluation from a root failed.";
     ASSERT_LE(result->getResult(), 1.0)
         << "Average score should not exceed the score of a perfect player.";
@@ -1038,7 +977,7 @@ TEST_F(ParallelLearningAgentTest, EvalAllRootsParallelValidationDeterminism)
 
     Learn::LearningAgent la(le, set, params);
     la.init(0); // Reset centralized RNG to 0
-    auto results = la.evaluateAllRoots(0, Learn::LearningMode::TRAINING);
+    auto results = la.evaluateAllRoots(0, Learn::LearningMode::VALIDATION);
     auto nextInt = la.getRNG().getUnsignedInt64(0, UINT64_MAX);
 
     Learn::LearningParameters paramsSequential = params;
@@ -1047,7 +986,7 @@ TEST_F(ParallelLearningAgentTest, EvalAllRootsParallelValidationDeterminism)
 
     plaSequential.init(0); // Reset centralized RNG to 0
     auto resultsSequential =
-        plaSequential.evaluateAllRoots(0, Learn::LearningMode::TRAINING);
+        plaSequential.evaluateAllRoots(0, Learn::LearningMode::VALIDATION);
     auto nextIntSequential =
         plaSequential.getRNG().getUnsignedInt64(0, UINT64_MAX);
 
@@ -1057,7 +996,7 @@ TEST_F(ParallelLearningAgentTest, EvalAllRootsParallelValidationDeterminism)
 
     plaParallel.init(0); // Reset centralized RNG to 0
     auto resultsParallel =
-        plaParallel.evaluateAllRoots(0, Learn::LearningMode::TRAINING);
+        plaParallel.evaluateAllRoots(0, Learn::LearningMode::VALIDATION);
     auto nextIntParallel = plaParallel.getRNG().getUnsignedInt64(0, UINT64_MAX);
 
     // Check equality between LearningAgent and ParallelLearningAgent
