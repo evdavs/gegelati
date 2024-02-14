@@ -42,7 +42,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
 
     // Reset the learning Environment
     if (evalPassed == false) {
-        le.reset(hash, mode, /*iterationNumber =*/0, 0 /* generationNumber*/);
+        le.reset(hash, mode, /*iterationNumber =*/0,generationNumber);
     }
 
     while (!le.isTerminal()) {
@@ -54,6 +54,25 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
         le.doAction(actionID);
         // Increment total actions
         totalActions++;
+
+        // root does 'totalInteractions' amount of actions before passing to next root
+        while (totalActions < this->params.totalInteractions) {
+            prevOutcome += le.getScore();
+            previousScores.push_back(prevOutcome);
+        }
+
+        if (previousScores.empty()) {
+            std::cout << "Error: Cannot calculate average of an empty vector."
+                      << std::endl;
+        }
+
+        uint64_t sum = 0.0;
+
+        for (int i = 0; i < previousScores.size(); ++i) {
+            sum += previousScores[i];
+        }
+
+        uint64_t average = sum / previousScores.size();
 
         // Check if it's time to perform an evaluation
         if (totalActions % this->params.totalInteractions == 0) {
@@ -87,6 +106,32 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
             evalPassed = true;
         }
     }
+}
+
+std::multimap<std::shared_ptr<Learn::EvaluationResult>, const TPG::TPGVertex*>
+Learn::CLagent::evaluateAllRootsCL(uint64_t generationNumber,
+                                       Learn::LearningMode mode)
+{
+    std::multimap<std::shared_ptr<EvaluationResult>, const TPG::TPGVertex*>
+        result;
+
+    // Create the TPGExecutionEngine for this evaluation.
+    // The engine uses the Archive only in training mode.
+    std::unique_ptr<TPG::TPGExecutionEngine> tee =
+        this->tpg->getFactory().createTPGExecutionEngine(
+            this->env,
+            (mode == LearningMode::TRAINING) ? &this->archive : NULL);
+
+    auto roots = tpg->getRootVertices();
+    for (int i = 0; i < roots.size(); i++) {
+        auto job = makeJob(roots.at(i), mode);
+        this->archive.setRandomSeed(job->getArchiveSeed());
+        std::shared_ptr<EvaluationResult> avgScore = this->evaluateJobCL(
+            *tee, *job, generationNumber, mode, this->learningEnvironment);
+        result.emplace(avgScore, (*job).getRoot());
+    }
+
+    return result;
 }
 
 void Learn::CLagent::trainOneAgent(

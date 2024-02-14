@@ -73,6 +73,21 @@ namespace Learn {
             TPG::TPGExecutionEngine& tee, const Job& job,
             uint64_t generationNumber, LearningMode mode,
             LearningEnvironment& le) const;
+        /**
+         * \brief Evaluate all root TPGVertex of the TPGGraph.
+         *
+         * This method calls the evaluateJob method for every root TPGVertex
+         * of the TPGGraph. The method returns a sorted map associating each
+         * root vertex to its average score, in ascending order or score.
+         *
+         * \param[in] generationNumber the integer number of the current
+         * generation.
+         * \param[in] mode the LearningMode to use during the policy
+         * evaluation.
+         */
+        std::multimap<std::shared_ptr<EvaluationResult>,
+                              const TPG::TPGVertex*>
+        evaluateAllRootsCL(uint64_t generationNumber, LearningMode mode);
 
                 /**
          * \brief Train the TPGGraph for one agent.
