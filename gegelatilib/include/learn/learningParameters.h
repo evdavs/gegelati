@@ -199,7 +199,8 @@ namespace Learn {
         bool doValidation = false;
 
         uint64_t totalNbDel = 5;
-        uint64_t totalInteractions = 5;
+        uint64_t totalInteractions = 8;
+        uint64_t decayThreshold = 4;
     } LearningParameters;
 }; // namespace Learn
 

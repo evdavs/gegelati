@@ -10,6 +10,18 @@
 
 #include "learn/CLagent.h"
 
+double calculateWeightDecay(double numScores)
+{
+    // Example of a decay function that reaches zero and stays at zero
+    if (numScores >= 3) {
+        return 0.0; // Decay factor stays at zero after reaching a certain
+                    // threshold
+    }
+    else {
+        return (3 - numScores) / 3;
+    }
+}
+
 std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     TPG::TPGExecutionEngine& tee, const Job& job, uint64_t generationNumber,
     Learn::LearningMode mode, LearningEnvironment& le) const
@@ -33,17 +45,15 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
 
     // Initialize vars
     bool evalPassed = false;
-    uint64_t bias = 1;
-    uint64_t prevOutcome = 0;
+    double prevOutcome = 0;
+    double sum = 0.0;
 
     // Compute a Hash
     Data::Hash<uint64_t> hasher;
     uint64_t hash = hasher(generationNumber) ^ hasher(generationNumber);
 
     // Reset the learning Environment
-    if (evalPassed == false) {
         le.reset(hash, mode, /*iterationNumber =*/0,generationNumber);
-    }
 
     while (!le.isTerminal()) {
         // Get the action
@@ -51,29 +61,52 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
             ((const TPG::TPGAction*)tee.executeFromRoot(*root).back())
                 ->getActionID();
         // Do it
-        le.doAction(actionID);
+        
         // Increment total actions
-        totalActions++;
+        
 
         // root does 'totalInteractions' amount of actions before passing to next root
-        while (totalActions < this->params.totalInteractions) {
-            prevOutcome += le.getScore();
-            previousScores.push_back(prevOutcome);
+        if (evalPassed = false) {
+            while (totalActions < this->params.totalInteractions) {
+                le.doAction(actionID);
+                prevOutcome += le.getScore();
+                previousScores.push_back(prevOutcome);
+                totalActions++;
+            }
+            if (previousScores.empty()) {
+                std::cout << "Error: Cannot calculate average of an empty "
+                             "vector : division by zero"
+                          << std::endl;
+            }
+             
+            for (int i = 0; i < previousScores.size(); ++i) {
+                sum += previousScores[i];   
+            }
+            result = result + sum / previousScores.size(); 
         }
+        evalPassed = true;
 
-        if (previousScores.empty()) {
-            std::cout << "Error: Cannot calculate average of an empty vector."
-                      << std::endl;
+        if (evalPassed) {
+            double numScores = previousScores.size();
+            double scoreFromLast = previousScores.back();
+            while (totalActions < this->params.totalInteractions ) {
+                double lastScoreInf = calculateWeightDecay(numScores);
+                double lastScoreWeighted = scoreFromLast * lastScoreInf;
+                le.doAction(actionID); 
+                prevOutcome += le.getScore() * (1-lastScoreInf) + lastScoreWeighted;
+                previousScores.push_back(prevOutcome);
+                totalActions++;
+            }
+            sum = 0.0;
+            for (int i = 0; i < previousScores.size(); ++i) {
+                sum += previousScores[i];
+            }
+            result += sum / previousScores.size(); 
         }
+        
 
-        uint64_t sum = 0.0;
 
-        for (int i = 0; i < previousScores.size(); ++i) {
-            sum += previousScores[i];
-        }
-
-        uint64_t average = sum / previousScores.size();
-
+/*
         // Check if it's time to perform an evaluation
         if (totalActions % this->params.totalInteractions == 0) {
             if (evalPassed == false) {
@@ -104,40 +137,23 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
                 previousScores.back() = previousScores.back() * 0.9;
             prevOutcome = le.getScore();
             evalPassed = true;
-        }
+        }*/
     }
-}
+    // Create the EvaluationResult
+    auto evaluationResult =
+        std::shared_ptr<EvaluationResult>(new EvaluationResult(result,1));
 
-std::multimap<std::shared_ptr<Learn::EvaluationResult>, const TPG::TPGVertex*>
-Learn::CLagent::evaluateAllRootsCL(uint64_t generationNumber,
-                                       Learn::LearningMode mode)
-{
-    std::multimap<std::shared_ptr<EvaluationResult>, const TPG::TPGVertex*>
-        result;
-
-    // Create the TPGExecutionEngine for this evaluation.
-    // The engine uses the Archive only in training mode.
-    std::unique_ptr<TPG::TPGExecutionEngine> tee =
-        this->tpg->getFactory().createTPGExecutionEngine(
-            this->env,
-            (mode == LearningMode::TRAINING) ? &this->archive : NULL);
-
-    auto roots = tpg->getRootVertices();
-    for (int i = 0; i < roots.size(); i++) {
-        auto job = makeJob(roots.at(i), mode);
-        this->archive.setRandomSeed(job->getArchiveSeed());
-        std::shared_ptr<EvaluationResult> avgScore = this->evaluateJobCL(
-            *tee, *job, generationNumber, mode, this->learningEnvironment);
-        result.emplace(avgScore, (*job).getRoot());
+    // Combine it with previous one if any
+    if (previousEval != nullptr) {
+        *evaluationResult += *previousEval;
     }
-
-    return result;
+    return evaluationResult;
 }
 
 void Learn::CLagent::trainOneAgent(
-    uint64_t generationNumber) // put into new class
+    uint64_t generationNumber) 
 {
-    int nbdel = 0;
+    uint64_t nbdel = 0;
     for (auto logger : loggers) {
         logger.get().logNewGeneration(generationNumber);
     }
@@ -187,7 +203,7 @@ void Learn::CLagent::trainOneAgent(
     }
 }
 
-uint64_t Learn::CLagent::train(volatile bool& altTraining,
+uint64_t Learn::CLagent::trainCL(volatile bool& altTraining,
                                      bool printProgressBar)
 {
     const int barLength = 50;
