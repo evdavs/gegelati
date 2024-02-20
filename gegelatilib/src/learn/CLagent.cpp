@@ -29,6 +29,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     // Only consider the first root of jobs as we are not in adversarial mode
     const TPG::TPGVertex* root = job.getRoot();
     std::vector<double> previousScores;
+    std::vector<double> infScores;
     // Skip the root evaluation process if enough evaluations were already
     // performed. In the evaluation mode only.
     std::shared_ptr<Learn::EvaluationResult> previousEval;
@@ -47,6 +48,8 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     bool evalPassed = false;
     double prevOutcome = 0;
     double sum = 0.0;
+    double influence = 0.0;
+    double infScoreAvg;
 
     // Compute a Hash
     Data::Hash<uint64_t> hasher;
@@ -78,14 +81,15 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
                              "vector : division by zero"
                           << std::endl;
             }
-             
+            sum = 0.0;
             for (int i = 0; i < previousScores.size(); ++i) {
                 sum += previousScores[i];   
             }
-            result = result + sum / previousScores.size(); 
+             
         }
+        double result1 = sum / previousScores.size() *(1-influence) + infScoreAvg/this->params.decayThreshold;
         evalPassed = true;
-
+        double sizeRoot = previousScores.size();
         if (evalPassed) {
             double numScores = previousScores.size();
             double scoreFromLast = previousScores.back();
@@ -101,8 +105,11 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
             for (int i = 0; i < previousScores.size(); ++i) {
                 sum += previousScores[i];
             }
-            result += sum / previousScores.size(); 
+            double result2 = sum / previousScores.size(); 
+/*          double influence = calculateWeightDecay(numScores);
+            double infScoreAvg = */
         }
+       
         
 
 
