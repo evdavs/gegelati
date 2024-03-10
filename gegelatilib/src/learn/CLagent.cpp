@@ -49,7 +49,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     double prevOutcome = 0;
     double sum = 0.0;
     double influence = 0.0;
-    double infScoreAvg;
+    double infScoreAvg =0.0;
 
     // Compute a Hash
     Data::Hash<uint64_t> hasher;
@@ -92,7 +92,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
         double sizeRoot = previousScores.size();
         if (evalPassed) {
             double numScores = previousScores.size();
-            double scoreFromLast = previousScores.back();
+            double scoreFromLast = 0.0;//previousScores.back();
             while (totalActions < this->params.totalInteractions ) {
                 double lastScoreInf = calculateWeightDecay(numScores);
                 double lastScoreWeighted = scoreFromLast * lastScoreInf;
@@ -107,7 +107,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
             }
             double result2 = sum / previousScores.size(); 
 /*          double influence = calculateWeightDecay(numScores);
-            double infScoreAvg = */
+            double infScores = */
         }
        
         
@@ -157,10 +157,36 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     return evaluationResult;
 }
 
+std::multimap<std::shared_ptr<Learn::EvaluationResult>, const TPG::TPGVertex*>
+Learn::CLagent::evaluateAllRootsCL(uint64_t generationNumber,
+    Learn::LearningMode mode)
+{
+    std::multimap<std::shared_ptr<EvaluationResult>, const TPG::TPGVertex*>
+        result;
+
+    // Create the TPGExecutionEngine for this evaluation.
+    // The engine uses the Archive only in training mode.
+    std::unique_ptr<TPG::TPGExecutionEngine> tee =
+        this->tpg->getFactory().createTPGExecutionEngine(
+            this->env,
+            (mode == LearningMode::TRAINING) ? &this->archive : NULL);
+
+    auto roots = tpg->getRootVertices();
+    for (int i = 0; i < roots.size(); i++) {
+        auto job = makeJob(roots.at(i), mode);
+        this->archive.setRandomSeed(job->getArchiveSeed());
+        std::shared_ptr<EvaluationResult> avgScore = this->evaluateJobCL(
+            *tee, *job, generationNumber, mode, this->learningEnvironment);
+        result.emplace(avgScore, (*job).getRoot());
+    }
+
+    return result;
+}
+
 void Learn::CLagent::trainOneAgent(
     uint64_t generationNumber) 
 {
-    uint64_t nbdel = 0;
+    nbdel++;
     for (auto logger : loggers) {
         logger.get().logNewGeneration(generationNumber);
     }
@@ -175,21 +201,19 @@ void Learn::CLagent::trainOneAgent(
 
     // Evaluate
     auto results =
-        this->evaluateAllRoots(generationNumber, LearningMode::TRAINING);
-    nbdel++;
+        this->evaluateAllRootsCL(generationNumber, LearningMode::TRAINING);
     for (auto logger : loggers) {
         logger.get().logAfterEvaluate(results);
     }
 
     // Save the best score
     this->updateBestScoreLastGen(results);
-
     if (nbdel == this->params.totalNbDel) {
         // Remove worst performing roots
         decimateWorstRoots(results);
         // Update the best
         this->updateEvaluationRecords(results);
-        nbdel = 0;
+        nbdel =0;
     }
 
     for (auto logger : loggers) {
@@ -199,7 +223,7 @@ void Learn::CLagent::trainOneAgent(
     // Does a validation or not according to the parameter doValidation
     if (params.doValidation) {
         auto validationResults =
-            evaluateAllRoots(generationNumber, Learn::LearningMode::TRAINING);
+            evaluateAllRootsCL(generationNumber, Learn::LearningMode::TRAINING);
         for (auto logger : loggers) {
             logger.get().logAfterValidate(validationResults);
         }

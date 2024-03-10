@@ -198,7 +198,7 @@ namespace Learn {
         /// training, and false otherwise
         bool doValidation = false;
 
-        uint64_t totalNbDel = 5;
+        uint64_t totalNbDel = 3;
         uint64_t totalInteractions = 8;
         uint64_t decayThreshold = 4;
     } LearningParameters;

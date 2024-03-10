@@ -56,9 +56,9 @@ Learn::AdversarialLearningAgent::evaluateAllRoots(uint64_t generationNumber,
 
 void Learn::AdversarialLearningAgent::evaluateAllRootsInParallelCompileResults(
     std::map<uint64_t, std::pair<std::shared_ptr<EvaluationResult>,
-                                 std::shared_ptr<Job>>>& resultsPerJobMap,
+        std::shared_ptr<Job>>>& resultsPerJobMap,
     std::multimap<std::shared_ptr<EvaluationResult>, const TPG::TPGVertex*>&
-        results,
+    results,
     std::map<uint64_t, Archive*>& archiveMap)
 {
     // Create temporary map to gather results per root
@@ -85,7 +85,7 @@ void Learn::AdversarialLearningAgent::evaluateAllRootsInParallelCompileResults(
                 // first time we encounter the results of this root
                 resultsPerRootMap.emplace(
                     root, std::make_shared<EvaluationResult>(EvaluationResult(
-                              res->getScoreOf(i), res->getNbEvaluation())));
+                        res->getScoreOf(i), res->getNbEvaluation())));
             }
             else {
                 // there is already a score for this root, let's do an addition
@@ -113,8 +113,8 @@ void Learn::AdversarialLearningAgent::evaluateAllRootsInParallelCompileResults(
     champions.clear();
     auto iterator = results.end();
     for (int i = 0; i <= (1.0 - params.ratioDeletedRoots) *
-                                 (double)tpg->getNbRootVertices() -
-                             1.0;
+                         (double)tpg->getNbRootVertices() -
+                         1.0;
          i++) {
         champions.emplace_back((--iterator)->second);
     }
@@ -123,9 +123,9 @@ void Learn::AdversarialLearningAgent::evaluateAllRootsInParallelCompileResults(
 }
 
 std::shared_ptr<Learn::EvaluationResult> Learn::AdversarialLearningAgent::
-    evaluateJob(TPG::TPGExecutionEngine& tee, const Job& job,
-                uint64_t generationNumber, Learn::LearningMode mode,
-                LearningEnvironment& le) const
+evaluateJob(TPG::TPGExecutionEngine& tee, const Job& job,
+            uint64_t generationNumber, Learn::LearningMode mode,
+            LearningEnvironment& le) const
 {
     auto& ale = (AdversarialLearningEnvironment&)le;
 
@@ -153,8 +153,8 @@ std::shared_ptr<Learn::EvaluationResult> Learn::AdversarialLearningAgent::
             // Get the action
             uint64_t actionID =
                 ((const TPG::TPGAction*)tee
-                     .executeFromRoot(*((const TPG::TPGTeam*)*rootsIterator))
-                     .back())
+                    .executeFromRoot(*((const TPG::TPGTeam*)*rootsIterator))
+                    .back())
                     ->getActionID();
             // Do it
             ale.doAction(actionID);
@@ -178,7 +178,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::AdversarialLearningAgent::
 }
 
 std::queue<std::shared_ptr<Learn::Job>> Learn::AdversarialLearningAgent::
-    makeJobs(Learn::LearningMode mode, TPG::TPGGraph* tpgGraph)
+makeJobs(Learn::LearningMode mode, TPG::TPGGraph* tpgGraph)
 {
     // sets the tpg to the Learning Agent's one if no one was specified
     tpgGraph = tpgGraph == nullptr ? tpg.get() : tpgGraph;

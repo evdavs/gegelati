@@ -222,6 +222,18 @@ void File::ParametersParser::setParameterFromString(
         params.doValidation = value.asBool();
         return;
     }
+    if (param == "totalInteractions") {
+        params.totalInteractions = value.asUInt();
+        return;
+    }
+    if (param == "totalNbDel") {
+        params.totalNbDel = value.asUInt();
+        return;
+    }
+    if (param == "decayThreshold") {
+        params.decayThreshold = value.asUInt();
+        return;
+    }
     // we didn't recognize the symbol
     std::cerr << "Ignoring unknown parameter " << param << std::endl;
 }

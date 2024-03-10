@@ -26,6 +26,8 @@ namespace Learn {
      */
     class CLagent: public LearningAgent
     {
+      private:
+        uint64_t nbdel = 0;
       public : 
                   /**
          * \brief Constructor for LearningAgent.
@@ -39,7 +41,25 @@ namespace Learn {
          */
         CLagent(LearningEnvironment& le, const Instructions::Set& iSet,
                 const LearningParameters& p,
-                const TPG::TPGFactory& factory = TPG::TPGFactory());
+                const TPG::TPGFactory& factory = TPG::TPGFactory())
+                : LearningAgent(le, iSet, p, factory){}
+
+                        /**
+         * \brief Train the TPGGraph for a given number of generation.
+         *
+         * The method trains the TPGGraph for a given number of generation,
+         * unless the referenced boolean value becomes false (evaluated at each
+         * generation).
+         * Optionally, a simple progress bar can be printed within the terminal.
+         * The TPGGraph is NOT (re)initialized before starting the training.
+         *
+         * \param[in] altTraining a reference to a boolean value that can be
+         * used to halt the training process before its completion.
+         * \param[in] printProgressBar select whether a progress bar will be
+         * printed in the console. \return the number of completed generations.
+         */
+        uint64_t trainCL(volatile bool& altTraining, bool printProgressBar);
+                
         /**
  * \brief Evaluates policy starting from the given root.
  *
@@ -73,6 +93,21 @@ namespace Learn {
             TPG::TPGExecutionEngine& tee, const Job& job,
             uint64_t generationNumber, LearningMode mode,
             LearningEnvironment& le) const;
+
+                        /**
+         * \brief Train the TPGGraph for one agent.
+         *
+         * Training for one agent includes:
+         * - Populating the TPGGraph according to given MutationParameters.
+         * - Evaluating all roots of the TPGGraph. (call to evaluateAllRoots and
+         * modified EvaluateJob)
+         * - Removing from the TPGGraph the worst root (after a while)
+         *
+         * \param[in] generationNumber the integer number of the current
+         * generation.
+         */
+        void trainOneAgent(uint64_t generationNumber);
+
         /**
          * \brief Evaluate all root TPGVertex of the TPGGraph.
          *
@@ -88,37 +123,6 @@ namespace Learn {
         std::multimap<std::shared_ptr<EvaluationResult>,
                               const TPG::TPGVertex*>
         evaluateAllRootsCL(uint64_t generationNumber, LearningMode mode);
-
-                /**
-         * \brief Train the TPGGraph for one agent.
-         *
-         * Training for one agent includes:
-         * - Populating the TPGGraph according to given MutationParameters.
-         * - Evaluating all roots of the TPGGraph. (call to evaluateAllRoots and
-         * modified EvaluateJob)
-         * - Removing from the TPGGraph the worst root (after a while)
-         *
-         * \param[in] generationNumber the integer number of the current
-         * generation.
-         * evaluations before deletion.
-         */
-        void trainOneAgent(uint64_t generationNumber);
-
-                /**
-         * \brief Train the TPGGraph for a given number of generation.
-         *
-         * The method trains the TPGGraph for a given number of generation,
-         * unless the referenced boolean value becomes false (evaluated at each
-         * generation).
-         * Optionally, a simple progress bar can be printed within the terminal.
-         * The TPGGraph is NOT (re)initialized before starting the training.
-         *
-         * \param[in] altTraining a reference to a boolean value that can be
-         * used to halt the training process before its completion.
-         * \param[in] printProgressBar select whether a progress bar will be
-         * printed in the console. \return the number of completed generations.
-         */
-        uint64_t train(volatile bool& altTraining, bool printProgressBar) override;
 
     };
 }; // namespace Learn
