@@ -10,21 +10,21 @@
 
 #include "learn/CLagent.h"
 
-double calculateWeightDecay(double numScores)
+double Learn::CLagent::calculateWeightDecay(double numScores) const
 {
     // Example of a decay function that reaches zero and stays at zero
-    if (numScores >= 3) {
+    if (numScores >= this->params.decayThreshold) {
         return 0.0; // Decay factor stays at zero after reaching a certain
                     // threshold
     }
     else {
-        return (3 - numScores) / 3;
+        return (this->params.decayThreshold - numScores) / this->params.decayThreshold;
     }
 }
 
 std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     TPG::TPGExecutionEngine& tee, const Job& job, uint64_t generationNumber,
-    Learn::LearningMode mode, LearningEnvironment& le) const
+    Learn::LearningMode mode, LearningEnvironment& le)
 {
     // Only consider the first root of jobs as we are not in adversarial mode
     const TPG::TPGVertex* root = job.getRoot();
@@ -46,10 +46,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
 
     // Initialize vars
     bool evalPassed = false;
-    double prevOutcome = 0;
     double sum = 0.0;
-    double influence = 0.0;
-    double infScoreAvg =0.0;
 
     // Compute a Hash
     Data::Hash<uint64_t> hasher;
@@ -69,7 +66,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
         
 
         // root does 'totalInteractions' amount of actions before passing to next root
-        if (evalPassed = false) {
+        if (evalPassed == false) {
             while (totalActions < this->params.totalInteractions) {
                 le.doAction(actionID);
                 prevOutcome += le.getScore();
@@ -87,12 +84,12 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
             }
              
         }
-        double result1 = sum / previousScores.size() *(1-influence) + infScoreAvg/this->params.decayThreshold;
+        double result1 = sum / previousScores.size(); //*(1-influence) + infScoreAvg/this->params.decayThreshold;
         evalPassed = true;
         double sizeRoot = previousScores.size();
         if (evalPassed) {
             double numScores = previousScores.size();
-            double scoreFromLast = 0.0;//previousScores.back();
+            double scoreFromLast = previousScores.back();
             while (totalActions < this->params.totalInteractions ) {
                 double lastScoreInf = calculateWeightDecay(numScores);
                 double lastScoreWeighted = scoreFromLast * lastScoreInf;
@@ -105,9 +102,10 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
             for (int i = 0; i < previousScores.size(); ++i) {
                 sum += previousScores[i];
             }
-            double result2 = sum / previousScores.size(); 
-/*          double influence = calculateWeightDecay(numScores);
-            double infScores = */
+            double result2 = sum / previousScores.size();
+            influence = calculateWeightDecay(numScores);
+            result1 *= (1+influence);
+            result = result1 + result2;
         }
        
         

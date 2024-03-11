@@ -28,7 +28,17 @@ namespace Learn {
     {
       private:
         uint64_t nbdel = 0;
-      public : 
+        double influence = 0.0;
+        double infScoreAvg = 0.0;
+        double prevOutcome = 0.0;
+      public :
+        /**
+* \brief Calculator for the weight decay.
+*
+* \param[in] numScores the number of scores obtained
+*/
+        double Learn::CLagent::calculateWeightDecay(double numScores) const;
+
                   /**
          * \brief Constructor for LearningAgent.
          *
@@ -92,7 +102,7 @@ namespace Learn {
         std::shared_ptr<EvaluationResult> evaluateJobCL(
             TPG::TPGExecutionEngine& tee, const Job& job,
             uint64_t generationNumber, LearningMode mode,
-            LearningEnvironment& le) const;
+            LearningEnvironment& le);
 
                         /**
          * \brief Train the TPGGraph for one agent.

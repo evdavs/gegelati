@@ -58,7 +58,7 @@ void Mutator::ProgramMutator::initRandomProgram(
     const uint64_t nbLine = rng.getUnsignedInt64(1, params.prog.maxProgramSize);
     // Insert them
     while (p.getNbLines() < nbLine) {
-        insertRandomLine(p, rng);
+        insertRandomLine(p, rng); 
     }
 
     // Identify Introns

@@ -104,7 +104,7 @@ namespace Learn {
         virtual std::shared_ptr<EvaluationResult> evaluateJob(
             TPG::TPGExecutionEngine& tee, const Job& root,
             uint64_t generationNumber, LearningMode mode,
-            LearningEnvironment& le) const override;
+            LearningEnvironment& le) const /* override*/;
 
         /**
          * \brief Specialization of the decimateWorstRoots method for

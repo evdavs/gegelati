@@ -161,7 +161,7 @@ class CLagentTest : public ::testing::Test
          << "Training for one agent failed.";
 
      // Check that bestScoreLastGen has been set
-  //   ASSERT_NE(la.getBestScoreLastGen(), 0.0);
+     ASSERT_NE(la.getBestScoreLastGen(), 0.0);
 
      // Check that bestRoot has been set
      ASSERT_NE(la.getBestRoot().first, nullptr);
@@ -197,7 +197,7 @@ class CLagentTest : public ::testing::Test
      ASSERT_NO_THROW(la.trainCL(alt, true))
          << "Using the boolean reference to stop the training should not fail.";
  }
- /*
+
  TEST_F(CLagentTest, EvaluateAllRootsCL)
  {
      params.archiveSize = 50;
@@ -217,4 +217,28 @@ class CLagentTest : public ::testing::Test
      ASSERT_EQ(result.size(), la.getTPGGraph()->getNbRootVertices())
          << "Number of evaluated roots is under the number of roots from the "
             "TPGGraph.";
- }*/
+ }
+
+TEST_F(CLagentTest, EvalRootCL)
+{
+    params.archiveSize = 50;
+    params.archivingProbability = 1.0;
+    params.maxNbActionsPerEval = 11;
+    params.nbIterationsPerPolicyEvaluation = 10;
+
+    Learn::CLagent la(le, set, params);
+    Archive a; // For testing purposes, notmally, the archive from the
+    // LearningAgent is used.
+
+    TPG::TPGExecutionEngine tee(la.getTPGGraph()->getEnvironment(), &a);
+
+    la.init();
+    std::shared_ptr<Learn::EvaluationResult> result;
+    auto job = *la.makeJob(la.getTPGGraph()->getRootVertices().at(0),
+                           Learn::LearningMode::TRAINING);
+    ASSERT_NO_THROW(
+        result = la.evaluateJobCL(tee, job, 0, Learn::LearningMode::TRAINING, le))
+                    << "Evaluation from a root failed.";
+    ASSERT_LE(result->getResult(), 1.0)
+                    << "Average score should not exceed the score of a perfect player.";
+}
