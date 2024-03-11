@@ -32,7 +32,7 @@
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL-C license and that you accept its terms.
  */
-
+/*
 #include "myNewEnv.h"
 
 bool MyNewEnv::isCopyable() const
@@ -70,7 +70,7 @@ void MyNewEnv::reset(size_t seed, Learn::LearningMode mode,
 }
 
 
-std::vector<std::reference_wrapper<const Data::DataHandler>>
+/*std::vector<std::reference_wrapper<const Data::DataHandler>>
 MyNewEnv::getDataSources()
 {
 
@@ -83,5 +83,6 @@ double MyNewEnv::getScore() const
 
 bool MyNewEnv::isTerminal() const
 {
-
+    return false;
 }
+*/

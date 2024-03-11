@@ -33,6 +33,7 @@ namespace Learn {
         double prevOutcome = 0.0;
         double numScores =0.0;
         std::vector<double> previousScores;
+        std::vector<double> earlyScores;
         bool evalPassed = false;
       public :
         /**

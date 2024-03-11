@@ -69,7 +69,7 @@ class CLagentTest : public ::testing::Test
    protected:
      Instructions::Set set;
      StickGameWithOpponent le;
-     MyNewEnv le1;
+//     MyNewEnv le1;
      Learn::LearningParameters params;
 
      virtual void SetUp()
@@ -146,11 +146,11 @@ class CLagentTest : public ::testing::Test
      }
      // Check the number of vertex in the graph.
      // Must be initial number of vertex - number of root removed
-     std::cout << "The value of totnbdel is: " << this->params.totalNbDel << std::endl;
+ /*    std::cout << "The value of totnbdel is: " << this->params.totalNbDel << std::endl;
      std::cout << "The value of a is: " << la.getTPGGraph()->getNbVertices() << std::endl;
      std::cout << "The value of b is: " << initialNbVertex << std::endl;
      std::cout << "The value of c is: " << params.ratioDeletedRoots << std::endl;
-     std::cout << "The value of d is: " << params.mutation.tpg.nbRoots << std::endl;
+     std::cout << "The value of d is: " << params.mutation.tpg.nbRoots << std::endl;     */ //debug
      ASSERT_EQ(la.getTPGGraph()->getNbVertices(),
                initialNbVertex - floor(params.ratioDeletedRoots *
                                        params.mutation.tpg.nbRoots))

@@ -40,7 +40,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
 
     // Init results
     double result = 0.0;
-
+    evalPassed = 0;
     // Initialize action counter
     uint64_t totalActions = 0;
 
@@ -88,67 +88,42 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
 
 //        double sizeRoot = previousScores.size();
             numScores = previousScores.size() - numScores;
-            double scoreFromLast = previousScores.back();
-            while (totalActions < this->params.totalInteractions ) {
+
+            while (totalActions < this->params.totalInteractions) {
                 le.doAction(actionID);
                 if(!evalPassed){
                     prevOutcome += le.getScore();
                 }
                 else{
-                    double lastScoreInf = calculateWeightDecay(numScores);
-                    double lastScoreWeighted = scoreFromLast * lastScoreInf;
-                    prevOutcome += le.getScore() * (1-lastScoreInf) + lastScoreWeighted;
+                    if(previousScores.back()){
+                        double scoreFromLast = previousScores.back();
+                        double lastScoreInf = calculateWeightDecay(numScores);
+                        double lastScoreWeighted = scoreFromLast * lastScoreInf;
+                        prevOutcome += le.getScore() * (1-lastScoreInf) + lastScoreWeighted;
+                    }
                 }
                 previousScores.push_back(prevOutcome);
+ /*               while (totalActions < this->params.decayThreshold){
+                    earlyScores.push_back(le.getScore());
+                }*/
                 totalActions++;
+ /*               double sumEarly = 0.0;
+                for (int i = 0; i < earlyScores.size(); ++i) {
+                    sumEarly += earlyScores[i] * (1-lastScoreInf) + lastScoreWeighted;
+                }
+                double avgEarly = sumEarly/earlyScores.size();*/
             }
             evalPassed = true;
             sum = 0.0;
             for (int i = 0; i < previousScores.size(); ++i) {
                 sum += previousScores[i];
             }
+
             double result2 = sum / previousScores.size();
-/*            numScores = previousScores.size() - numScores;
-            influence = calculateWeightDecay(numScores);
-            result1 *= (1+influence); */
+
             result = result2;
 
-       
-        
 
-
-/*
-        // Check if it's time to perform an evaluation
-        if (totalActions % this->params.totalInteractions == 0) {
-            if (evalPassed == false) {
-                prevOutcome += le.getScore();
-            }
-            if (le.getScore() > prevOutcome + 5 / 100 * prevOutcome) {
-                bias = 1 + (le.getScore() / prevOutcome) / 10;
-            }
-            if (le.getScore() < prevOutcome - 5 / 100 * prevOutcome) {
-                bias = 1 - (le.getScore() / prevOutcome) / 10;
-            }
-            else {
-                bias = 1;
-            }
-
-            // Save previous score
-            previousScores.push_back(prevOutcome);
-
-            result += le.getScore() * bias;
-
-            // modify previous scores depending on new score
-            if (!previousScores.empty()) {
-                if (le.getScore() > 800 &&
-                    le.getScore() > previousScores.back())
-                    previousScores.back() = previousScores.back() * 1.1;
-            }
-            if (le.getScore() < 200 && le.getScore() < previousScores.back())
-                previousScores.back() = previousScores.back() * 0.9;
-            prevOutcome = le.getScore();
-            evalPassed = true;
-        }*/
     }
     // Create the EvaluationResult
     auto evaluationResult =
