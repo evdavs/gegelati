@@ -28,8 +28,8 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
 {
     // Only consider the first root of jobs as we are not in adversarial mode
     const TPG::TPGVertex* root = job.getRoot();
-    std::vector<double> previousScores;
-    std::vector<double> infScores;
+
+
     // Skip the root evaluation process if enough evaluations were already
     // performed. In the evaluation mode only.
     std::shared_ptr<Learn::EvaluationResult> previousEval;
@@ -45,7 +45,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     uint64_t totalActions = 0;
 
     // Initialize vars
-    bool evalPassed = false;
+
     double sum = 0.0;
 
     // Compute a Hash
@@ -66,7 +66,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
         
 
         // root does 'totalInteractions' amount of actions before passing to next root
-        if (evalPassed == false) {
+/*        if (evalPassed == false) {
             while (totalActions < this->params.totalInteractions) {
                 le.doAction(actionID);
                 prevOutcome += le.getScore();
@@ -84,29 +84,35 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
             }
              
         }
-        double result1 = sum / previousScores.size(); //*(1-influence) + infScoreAvg/this->params.decayThreshold;
-        evalPassed = true;
-        double sizeRoot = previousScores.size();
-        if (evalPassed) {
-            double numScores = previousScores.size();
+        double result1 = sum / previousScores.size(); //*(1-influence) + infScoreAvg/this->params.decayThreshold;*/
+
+//        double sizeRoot = previousScores.size();
+            numScores = previousScores.size() - numScores;
             double scoreFromLast = previousScores.back();
             while (totalActions < this->params.totalInteractions ) {
-                double lastScoreInf = calculateWeightDecay(numScores);
-                double lastScoreWeighted = scoreFromLast * lastScoreInf;
-                le.doAction(actionID); 
-                prevOutcome += le.getScore() * (1-lastScoreInf) + lastScoreWeighted;
+                le.doAction(actionID);
+                if(!evalPassed){
+                    prevOutcome += le.getScore();
+                }
+                else{
+                    double lastScoreInf = calculateWeightDecay(numScores);
+                    double lastScoreWeighted = scoreFromLast * lastScoreInf;
+                    prevOutcome += le.getScore() * (1-lastScoreInf) + lastScoreWeighted;
+                }
                 previousScores.push_back(prevOutcome);
                 totalActions++;
             }
+            evalPassed = true;
             sum = 0.0;
             for (int i = 0; i < previousScores.size(); ++i) {
                 sum += previousScores[i];
             }
             double result2 = sum / previousScores.size();
+/*            numScores = previousScores.size() - numScores;
             influence = calculateWeightDecay(numScores);
-            result1 *= (1+influence);
-            result = result1 + result2;
-        }
+            result1 *= (1+influence); */
+            result = result2;
+
        
         
 

@@ -31,6 +31,9 @@ namespace Learn {
         double influence = 0.0;
         double infScoreAvg = 0.0;
         double prevOutcome = 0.0;
+        double numScores =0.0;
+        std::vector<double> previousScores;
+        bool evalPassed = false;
       public :
         /**
 * \brief Calculator for the weight decay.
