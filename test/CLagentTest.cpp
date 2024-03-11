@@ -61,6 +61,7 @@
 #include "learn/learningParameters.h"
 #include "learn/parallelLearningAgent.h"
 #include "learn/stickGameWithOpponent.h"
+#include "learn/myNewEnv.h"
 #include "learn/CLagent.h"
 
 class CLagentTest : public ::testing::Test
@@ -68,6 +69,7 @@ class CLagentTest : public ::testing::Test
    protected:
      Instructions::Set set;
      StickGameWithOpponent le;
+     MyNewEnv le1;
      Learn::LearningParameters params;
 
      virtual void SetUp()
