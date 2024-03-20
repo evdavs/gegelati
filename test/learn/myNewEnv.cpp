@@ -70,7 +70,7 @@ void MyNewEnv::reset(size_t seed, Learn::LearningMode mode,
 }
 
 
-/*std::vector<std::reference_wrapper<const Data::DataHandler>>
+std::vector<std::reference_wrapper<const Data::DataHandler>>
 MyNewEnv::getDataSources()
 {
 
