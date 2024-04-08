@@ -26,9 +26,9 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     TPG::TPGExecutionEngine& tee, const Job& job, uint64_t generationNumber,
     Learn::LearningMode mode, LearningEnvironment& le)
 {
+    static bool evalPassed = false;
     // Only consider the first root of jobs as we are not in adversarial mode
     const TPG::TPGVertex* root = job.getRoot();
-
 
     // Skip the root evaluation process if enough evaluations were already
     // performed. In the evaluation mode only.
@@ -38,102 +38,114 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
         return previousEval;
     }
 
-    // Init results
+    // Init
     double result = 0.0;
-    evalPassed = 0;
-    // Initialize action counter
-    uint64_t totalActions = 0;
+    double prevOutcome =0.0;
+    std::vector<double> previousScores;
+    std::vector<double> earlyScores;
+    std::vector<double> rootRes;
+    double numScores = 0.0;
 
     // Initialize vars
 
-    double sum = 0.0;
+    double sum;
 
-    // Compute a Hash
-    Data::Hash<uint64_t> hasher;
-    uint64_t hash = hasher(generationNumber) ^ hasher(generationNumber);
+    for (auto iterationNumber = 0; iterationNumber < this->params.nbIterationsPerPolicyEvaluation; iterationNumber++) {
 
-    // Reset the learning Environment
-        le.reset(hash, mode, /*iterationNumber =*/0,generationNumber);
+        // Compute a Hash
+        Data::Hash<uint64_t> hasher;
+        uint64_t hash = hasher(generationNumber) ^ hasher(iterationNumber);
 
-    while (!le.isTerminal()) {
-        // Get the action
-        uint64_t actionID =
-            ((const TPG::TPGAction*)tee.executeFromRoot(*root).back())
-                ->getActionID();
-        // Do it
-        
-        // Increment total actions
-        
+        // Reset the learning Environment
+        le.reset(hash, mode, iterationNumber, generationNumber);
+        uint64_t nbActions = 0;
+        while (!le.isTerminal() &&
+               nbActions < this->params.maxNbActionsPerEval) {
+            // Get the action
+            uint64_t actionID =
+                ((const TPG::TPGAction*)tee.executeFromRoot(*root).back())
+                    ->getActionID();
 
-        // root does 'totalInteractions' amount of actions before passing to next root
-/*        if (evalPassed == false) {
-            while (totalActions < this->params.totalInteractions) {
-                le.doAction(actionID);
-                prevOutcome += le.getScore();
-                previousScores.push_back(prevOutcome);
-                totalActions++;
-            }
-            if (previousScores.empty()) {
-                std::cout << "Error: Cannot calculate average of an empty "
-                             "vector : division by zero"
-                          << std::endl;
-            }
-            sum = 0.0;
-            for (int i = 0; i < previousScores.size(); ++i) {
-                sum += previousScores[i];   
-            }
-             
-        }
-        double result1 = sum / previousScores.size(); //*(1-influence) + infScoreAvg/this->params.decayThreshold;*/
-
-//        double sizeRoot = previousScores.size();
             numScores = previousScores.size() - numScores;
 
-            while (totalActions < this->params.totalInteractions) {
-                le.doAction(actionID);
-                if(!evalPassed){
-                    prevOutcome += le.getScore();
-                }
-                else{
-                    if(previousScores.back()){
-                        double scoreFromLast = previousScores.back();
-                        double lastScoreInf = calculateWeightDecay(numScores);
-                        double lastScoreWeighted = scoreFromLast * lastScoreInf;
-                        prevOutcome += le.getScore() * (1-lastScoreInf) + lastScoreWeighted;
-                    }
-                }
+
+            le.doAction(actionID);
+            prevOutcome += le.getScore();
+            result += prevOutcome;
+
+
+ //           if (previousScores.back() <= this->params.maxNbActionsPerEval) {
                 previousScores.push_back(prevOutcome);
- /*               while (totalActions < this->params.decayThreshold){
-                    earlyScores.push_back(le.getScore());
-                }*/
-                totalActions++;
- /*               double sumEarly = 0.0;
-                for (int i = 0; i < earlyScores.size(); ++i) {
-                    sumEarly += earlyScores[i] * (1-lastScoreInf) + lastScoreWeighted;
-                }
-                double avgEarly = sumEarly/earlyScores.size();*/
-            }
-            evalPassed = true;
-            sum = 0.0;
-            for (int i = 0; i < previousScores.size(); ++i) {
-                sum += previousScores[i];
-            }
+ //           }
+ /*           for (int i = 0; i < this->params.maxNbActionsPerEval; ++i){
+                previousScores.push_back(i*5);
+            }*/
+//            else{
+    /*                      double scoreFromLast = previousScores.back();
+                          double lastScoreInf = calculateWeightDecay(numScores);
+                          double lastScoreWeighted = scoreFromLast *
+               lastScoreInf;
+                          prevOutcome += le.getScore() * (1-lastScoreInf) +
+               lastScoreWeighted;
+                          previousScores.push_back(prevOutcome);*/
+ /*                         double sumEarly = 0.0;
+                          while (nbActions < this->params.decayThreshold){
+                              earlyScores.push_back(le.getScore());
+                          }
+                          for (int i = 0; i < earlyScores.size(); ++i) {
+                              sumEarly += earlyScores[i] * (1-lastScoreInf) +
+               lastScoreWeighted;
+                          }
+                          double avgEarly = sumEarly/earlyScores.size();
+                          rootRes.back()+=avgEarly;*/
+                          nbActions++;
+//            }
+        }
 
-            double result2 = sum / previousScores.size();
+        sum = 0.0;
+        for (int i = 0; i < previousScores.size(); ++i) {
+            sum += previousScores[i];
+        }
 
-            result = result2;
-
-
+        result = sum / previousScores.size();
+        rootRes.push_back(result);
     }
+/*
+// Create the EvaluationResult
+auto evaluationResult =
+    std::shared_ptr<EvaluationResult>(new EvaluationResult(
+        result / (double)params.nbIterationsPerPolicyEvaluation,
+        params.nbIterationsPerPolicyEvaluation));
+
+// Combine it with previous one if any
+if (previousEval != nullptr) {
+    *evaluationResult += *previousEval;
+}
+return evaluationResult;
+*/
+
+//    }
     // Create the EvaluationResult
-    auto evaluationResult =
-        std::shared_ptr<EvaluationResult>(new EvaluationResult(result,1));
-
-    // Combine it with previous one if any
-    if (previousEval != nullptr) {
-        *evaluationResult += *previousEval;
-    }
-    return evaluationResult;
+//    if(!evalPassed) {
+        auto evaluationResult = std::shared_ptr<EvaluationResult>(
+            new EvaluationResult(result/ (double)params.nbIterationsPerPolicyEvaluation, params.nbIterationsPerPolicyEvaluation));
+        // Combine it with previous one if any
+        if (previousEval != nullptr) {
+            *evaluationResult += *previousEval;
+        }
+        evalPassed = true;
+        return evaluationResult;
+ //  }
+   /*   else{
+        auto evaluationResult = std::shared_ptr<EvaluationResult>(
+            new EvaluationResult(rootRes.end()[-1]/ (double)params.nbIterationsPerPolicyEvaluation, params.nbIterationsPerPolicyEvaluation));
+        // Combine it with previous one if any
+        if (previousEval != nullptr) {
+            *evaluationResult += *previousEval;
+        }
+        evalPassed = true;
+        return evaluationResult;
+    }*/
 }
 
 std::multimap<std::shared_ptr<Learn::EvaluationResult>, const TPG::TPGVertex*>
@@ -165,7 +177,8 @@ Learn::CLagent::evaluateAllRootsCL(uint64_t generationNumber,
 void Learn::CLagent::trainOneAgent(
     uint64_t generationNumber) 
 {
-    nbdel++;
+    uint64_t nbdel =0;
+
     for (auto logger : loggers) {
         logger.get().logNewGeneration(generationNumber);
     }
@@ -187,18 +200,17 @@ void Learn::CLagent::trainOneAgent(
 
     // Save the best score
     this->updateBestScoreLastGen(results);
-    if (nbdel == this->params.totalNbDel) {
-        // Remove worst performing roots
-        decimateWorstRoots(results);
-        // Update the best
-        this->updateEvaluationRecords(results);
-        nbdel =0;
-    }
 
+    this->updateEvaluationRecords(results);
     for (auto logger : loggers) {
         logger.get().logAfterDecimate();
     }
-
+    nbdel++;
+//    if (nbdel == this->params.totalNbDel) {
+        // Remove worst performing roots
+        decimateWorstRoots(results);
+        // Update the best
+//    }
     // Does a validation or not according to the parameter doValidation
     if (params.doValidation) {
         auto validationResults =

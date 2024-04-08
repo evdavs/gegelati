@@ -223,15 +223,15 @@ void File::ParametersParser::setParameterFromString(
         return;
     }
     if (param == "totalInteractions") {
-        params.totalInteractions = value.asUInt();
+        params.totalInteractions = (size_t)value.asUInt();
         return;
     }
     if (param == "totalNbDel") {
-        params.totalNbDel = value.asUInt();
+        params.totalNbDel = (size_t)value.asUInt();
         return;
     }
     if (param == "decayThreshold") {
-        params.decayThreshold = value.asUInt();
+        params.decayThreshold = (size_t)value.asUInt();
         return;
     }
     // we didn't recognize the symbol

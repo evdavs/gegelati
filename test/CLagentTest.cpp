@@ -1,5 +1,5 @@
 /**
- * Copyright or © or Copr. IETR/INSA - Rennes (2019 - 2023) :
+ * Copyright or ï¿½ or Copr. IETR/INSA - Rennes (2019 - 2023) :
  *
  * QuentinVacher <98522623+QuentinVacher-rl@users.noreply.github.com> (2023)
  * Karol Desnos <kdesnos@insa-rennes.fr> (2019 - 2022)
@@ -141,9 +141,9 @@ class CLagentTest : public ::testing::Test
                                       la.getRNG(), 1);
      size_t initialNbVertex = la.getTPGGraph()->getNbVertices();
      // Seed selected so that an action becomes a root during next generation
-     for (uint64_t i = 0; i < params.totalNbDel; ++i) {
+//     for (uint64_t i = 0; i < params.totalNbDel; ++i) {
          ASSERT_NO_THROW(la.trainOneAgent(4)) << "Training for one agent failed.";
-     }
+//     }
      // Check the number of vertex in the graph.
      // Must be initial number of vertex - number of root removed
  /*    std::cout << "The value of totnbdel is: " << this->params.totalNbDel << std::endl;

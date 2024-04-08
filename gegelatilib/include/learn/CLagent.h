@@ -27,21 +27,12 @@ namespace Learn {
     class CLagent: public LearningAgent
     {
       private:
-        uint64_t nbdel = 0;
-        double influence = 0.0;
-        double infScoreAvg = 0.0;
-        double prevOutcome = 0.0;
-        double numScores =0.0;
-        std::vector<double> previousScores;
-        std::vector<double> earlyScores;
-        bool evalPassed = false;
+//        uint64_t nbdel = 0;
+//        double prevOutcome = 0.0;
+
+
       public :
-        /**
-* \brief Calculator for the weight decay.
-*
-* \param[in] numScores the number of scores obtained
-*/
-        double Learn::CLagent::calculateWeightDecay(double numScores) const;
+
 
                   /**
          * \brief Constructor for LearningAgent.
@@ -57,7 +48,12 @@ namespace Learn {
                 const LearningParameters& p,
                 const TPG::TPGFactory& factory = TPG::TPGFactory())
                 : LearningAgent(le, iSet, p, factory){}
-
+        /**
+* \brief Calculator for the weight decay.
+*
+* \param[in] numScores the number of scores obtained
+         */
+        double calculateWeightDecay(double numScores) const;
                         /**
          * \brief Train the TPGGraph for a given number of generation.
          *
@@ -94,7 +90,6 @@ namespace Learn {
  * \param[in] le Reference to the LearningEnvironment to use
  * during the policy evaluation (may be different from the attribute of
  * the class in child LearningAgentClass).
- * \param[in] totalInteractions the number of actions before evaluation
  *
  * \return a std::shared_ptr to the EvaluationResult for the root. If
  * this root was already evaluated more times then the limit in

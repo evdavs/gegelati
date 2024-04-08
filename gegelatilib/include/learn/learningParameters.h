@@ -96,7 +96,7 @@ namespace Learn {
             "// \"maxNbActionsPerEval\" : 1000, // Default value";
         /// Maximum number of actions performed on the learning environment
         /// during the each evaluation of a root
-        uint64_t maxNbActionsPerEval = 1000;
+        uint64_t maxNbActionsPerEval = 100;
 
         /// JSon comment
         inline static const std::string ratioDeletedRootsComment =
@@ -197,10 +197,12 @@ namespace Learn {
         /// Boolean set to true if the user wants a validation after each
         /// training, and false otherwise
         bool doValidation = false;
-
-        uint64_t totalNbDel = 3;
-        uint64_t totalInteractions = 8;
-        uint64_t decayThreshold = 4;
+        /// number of evaluations before deletion
+        size_t totalNbDel = 3;
+        /// number of interactions before evaluation
+        size_t totalInteractions = 8;
+        /// number of action evaluations before decay
+        size_t decayThreshold = 4;
     } LearningParameters;
 }; // namespace Learn
 

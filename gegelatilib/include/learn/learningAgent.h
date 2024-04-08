@@ -205,7 +205,6 @@ namespace Learn {
          * \param[in] le Reference to the LearningEnvironment to use
          * during the policy evaluation (may be different from the attribute of
          * the class in child LearningAgentClass).
-         * \param[in] totalInteractions the number of actions before evaluation
          *
          * \return a std::shared_ptr to the EvaluationResult for the root. If
          * this root was already evaluated more times then the limit in
