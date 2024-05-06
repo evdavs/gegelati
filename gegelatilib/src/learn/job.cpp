@@ -50,3 +50,14 @@ const TPG::TPGVertex* Learn::Job::getRoot() const
 {
     return root;
 }
+
+std::vector<stateEOE> Learn::Job::getVecStateEOE() const
+{
+    return vecStateEOE;
+}
+
+void Learn::Job::setVecStateEOE(const std::vector<stateEOE>& vecPrev) const
+{
+    const_cast<std::vector<stateEOE>&>(this->vecStateEOE) = vecPrev;
+}
+

@@ -75,7 +75,7 @@ namespace Learn {
         /**
          * Vector of previous end of state values
          */
-        std::vector<stateEOE> vecStateEOE;
+        const std::vector<stateEOE> vecStateEOE;
 
 
 
@@ -121,6 +121,19 @@ namespace Learn {
          * @return The root embedded by the job.
          */
         virtual const TPG::TPGVertex* getRoot() const;
+
+        /**
+         * \brief Getter of the vector of pendulum states.
+         *
+         * @return the vector of pendulum states.
+         */
+        virtual std::vector<stateEOE> getVecStateEOE() const;
+
+        /**
+         * \brief Setter of the vector of pendulum states.
+         */
+        virtual void setVecStateEOE(const std::vector<stateEOE>& vecPrev) const;
+
     };
 } // namespace Learn
 

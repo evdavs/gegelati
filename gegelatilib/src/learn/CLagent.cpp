@@ -41,7 +41,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     }
 
     // Init
-    static double result = 0.0;
+    double result = 0.0;
     double prevOutcome =0.0;
     std::vector<double> previousScores;
     std::vector<double> earlyScores;
@@ -63,7 +63,8 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
             le.reset(hash, mode, iterationNumber, generationNumber);
         }
         else{
-
+            previousJob.getVecStateEOE();
+            ((Pendulum &) le).reset();
         }
         uint64_t nbActions = 0;
         while (!le.isTerminal() &&
@@ -107,8 +108,10 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
         //           if (previousScores.back() <= this->params.maxNbActionsPerEval) {
         previousScores.push_back(prevOutcome);
         //           }
-        ((Pendulum &) le).getAngle();
-        ((Pendulum &) le).getVelocity();
+        std::vector<stateEOE> vecPrev(this->params.nbIterationsPerPolicyEvaluation);
+        vecPrev[iterationNumber].angle = ((Pendulum &) le).getAngle();
+        vecPrev[iterationNumber].velocity = ((Pendulum &) le).getVelocity();
+        job.setVecStateEOE(vecPrev);
 
 
 //        rootRes.push_back(result);
