@@ -95,7 +95,8 @@ class Pendulum : public Learn::LearningEnvironment
 
     /// Inherited via LearningEnvironment
     virtual void reset(size_t seed = 0, Learn::LearningMode mode = Learn::LearningMode::TRAINING,
-                       uint16_t iterationNumber = 0, uint64_t generationNumber = 0) override;
+                       uint16_t iterationNumber = 0, uint64_t generationNumber = 0,
+                       double resetAngle = 0, double resetVelocity = 0);
 
     /**
 	* \brief Get the action from its associated ID.

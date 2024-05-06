@@ -39,17 +39,23 @@ std::vector<std::reference_wrapper<const Data::DataHandler>> Pendulum::getDataSo
     return result;
 }
 
-void Pendulum::reset(size_t seed, Learn::LearningMode mode, uint16_t iterationNumber, uint64_t generationNumber)
+void Pendulum::reset(size_t seed, Learn::LearningMode mode, uint16_t iterationNumber, uint64_t generationNumber, double resetAngle, double resetVelocity)
 {
     // Create seed from seed and mode
     size_t hash_seed = Data::Hash<size_t>()(seed) ^ Data::Hash<Learn::LearningMode>()(mode);
 
     // Reset the RNG
     this->rng.setSeed(hash_seed);
+    if (resetAngle == 0.0) {
+        resetAngle = this->rng.getDouble(-M_PI, M_PI); // Initialize resetAngle if not provided
+    }
+    if (resetVelocity == 0.0) {
+        resetVelocity = this->rng.getDouble(-1.0, 1.0); // Initialize resetAngle if not provided
+    }
 
     // Set initial state
-    this->setAngle(this->rng.getDouble(-M_PI, M_PI));
-    this->setVelocity(this->rng.getDouble(-1.0, 1.0));
+    this->setAngle(resetAngle);
+    this->setVelocity(resetVelocity);
     this->nbActionsExecuted = 0;
     this->totalReward = 0.0;
 }

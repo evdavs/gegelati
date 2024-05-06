@@ -54,17 +54,21 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
 
     for (auto iterationNumber = 0; iterationNumber < this->params.nbIterationsPerPolicyEvaluation; iterationNumber++) {
 
-        if (job.getIdx() == 0){
+
             // Compute a Hash
             Data::Hash<uint64_t> hasher;
             uint64_t hash = hasher(generationNumber) ^ hasher(iterationNumber); //le.init(seed) en gros
 
             // Reset the learning Environment
             le.reset(hash, mode, iterationNumber, generationNumber);
-        }
-        else{
-            previousJob.getVecStateEOE();
-            ((Pendulum &) le).reset();
+
+        if (job.getIdx() > 0) {
+            std::vector<stateEOE> retrievedVec = previousJob.getVecStateEOE();
+            stateEOE desiredElement = retrievedVec[iterationNumber];
+            double resetAngle = desiredElement.angle;
+            double resetVelocity = desiredElement.velocity;
+            ((Pendulum &) le).reset(hash, mode, iterationNumber, generationNumber, resetAngle, resetVelocity);
+
         }
         uint64_t nbActions = 0;
         while (!le.isTerminal() &&
