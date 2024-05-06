@@ -47,7 +47,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage -fprofile-arcs -ftest-coverage")
 endif()
 
-add_executable(${TEST_TARGET_NAME} ${${TEST_TARGET_NAME}_SRC} learn/myNewEnv.cpp learn/myNewEnv.h)
+add_executable(${TEST_TARGET_NAME} ${${TEST_TARGET_NAME}_SRC} )
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	target_link_libraries(${TEST_TARGET_NAME} gtest_main ${PROJECT_NAME}::${PROJECT_NAME} -latomic)

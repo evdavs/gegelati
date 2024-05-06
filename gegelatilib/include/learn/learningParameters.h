@@ -197,12 +197,27 @@ namespace Learn {
         /// Boolean set to true if the user wants a validation after each
         /// training, and false otherwise
         bool doValidation = false;
+
+        /// JSon comment
+        inline static const std::string totalNbDelComment =
+            "// Number of evaluations before deletion.\n"
+            "// \"totalNbDel\" : 3, // Default value";
         /// number of evaluations before deletion
         size_t totalNbDel = 3;
-        /// number of interactions before evaluation
-        size_t totalInteractions = 8;
+
+        /// JSon comment
+        inline static const std::string totalInteractionsComment =
+            "// Number of root actions before evaluation, in the evaluateJob function.\n"
+            "// \"totalInteractions\" : 3, // Default value";
+        /// Number of root actions before evaluation, in the evaluateJob function
+        size_t totalInteractions = 30;
+
+        /// JSon comment
+        inline static const std::string decayThresholdComment =
+            "// Number of actions before sliding window.\n"
+            "// \"nbRegisters\" : 4, // Default value";
         /// number of action evaluations before decay
-        size_t decayThreshold = 4;
+        size_t decayThreshold = totalInteractions - 10;
     } LearningParameters;
 }; // namespace Learn
 

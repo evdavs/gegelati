@@ -121,6 +121,8 @@
 #include <tpg/instrumented/tpgTeamInstrumented.h>
 #include <tpg/instrumented/tpgVertexInstrumentation.h>
 
+#include <environment/pendulum.h>
+
 #ifdef CODE_GENERATION
 #include <codeGen/programGenerationEngine.h>
 #include <codeGen/tpgGenerationEngine.h>

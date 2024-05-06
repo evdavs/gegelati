@@ -1,11 +1,13 @@
 #include <inttypes.h>
 #include <queue>
+#include <map>
 
 #include "data/hash.h"
 #include "learn/evaluationResult.h"
 #include "mutator/rng.h"
 #include "mutator/tpgMutator.h"
 #include "tpg/tpgExecutionEngine.h"
+#include "environment/pendulum.h"
 
 
 #include "learn/CLagent.h"
@@ -23,10 +25,10 @@ double Learn::CLagent::calculateWeightDecay(double numScores) const
 }
 
 std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
-    TPG::TPGExecutionEngine& tee, const Job& job, uint64_t generationNumber,
+    TPG::TPGExecutionEngine& tee, const Job& job, const Job& previousJob, uint64_t generationNumber,
     Learn::LearningMode mode, LearningEnvironment& le)
 {
-    static bool evalPassed = false;
+    bool evalPassed = false;
     // Only consider the first root of jobs as we are not in adversarial mode
     const TPG::TPGVertex* root = job.getRoot();
 
@@ -39,7 +41,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     }
 
     // Init
-    double result = 0.0;
+    static double result = 0.0;
     double prevOutcome =0.0;
     std::vector<double> previousScores;
     std::vector<double> earlyScores;
@@ -52,12 +54,17 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
 
     for (auto iterationNumber = 0; iterationNumber < this->params.nbIterationsPerPolicyEvaluation; iterationNumber++) {
 
-        // Compute a Hash
-        Data::Hash<uint64_t> hasher;
-        uint64_t hash = hasher(generationNumber) ^ hasher(iterationNumber);
+        if (job.getIdx() == 0){
+            // Compute a Hash
+            Data::Hash<uint64_t> hasher;
+            uint64_t hash = hasher(generationNumber) ^ hasher(iterationNumber); //le.init(seed) en gros
 
-        // Reset the learning Environment
-        le.reset(hash, mode, iterationNumber, generationNumber);
+            // Reset the learning Environment
+            le.reset(hash, mode, iterationNumber, generationNumber);
+        }
+        else{
+
+        }
         uint64_t nbActions = 0;
         while (!le.isTerminal() &&
                nbActions < this->params.maxNbActionsPerEval) {
@@ -66,17 +73,12 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
                 ((const TPG::TPGAction*)tee.executeFromRoot(*root).back())
                     ->getActionID();
 
-            numScores = previousScores.size() - numScores;
+ //           numScores = previousScores.size() - numScores;
 
 
             le.doAction(actionID);
-            prevOutcome += le.getScore();
-            result += prevOutcome;
+            nbActions++;
 
-
- //           if (previousScores.back() <= this->params.maxNbActionsPerEval) {
-                previousScores.push_back(prevOutcome);
- //           }
  /*           for (int i = 0; i < this->params.maxNbActionsPerEval; ++i){
                 previousScores.push_back(i*5);
             }*/
@@ -98,18 +100,24 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
                           }
                           double avgEarly = sumEarly/earlyScores.size();
                           rootRes.back()+=avgEarly;*/
-                          nbActions++;
+
 //            }
         }
+        prevOutcome += le.getScore();
+        //           if (previousScores.back() <= this->params.maxNbActionsPerEval) {
+        previousScores.push_back(prevOutcome);
+        //           }
+        ((Pendulum &) le).getAngle();
+        ((Pendulum &) le).getVelocity();
 
-        sum = 0.0;
+
+//        rootRes.push_back(result);
+    }
+            sum = 0.0;
         for (int i = 0; i < previousScores.size(); ++i) {
             sum += previousScores[i];
         }
-
-        result = sum / previousScores.size();
-        rootRes.push_back(result);
-    }
+        result = sum;
 /*
 // Create the EvaluationResult
 auto evaluationResult =
@@ -163,12 +171,23 @@ Learn::CLagent::evaluateAllRootsCL(uint64_t generationNumber,
             (mode == LearningMode::TRAINING) ? &this->archive : NULL);
 
     auto roots = tpg->getRootVertices();
-    for (int i = 0; i < roots.size(); i++) {
-        auto job = makeJob(roots.at(i), mode);
+
+    // Create a map to store IDs and corresponding vertices
+    std::map<int, const TPG::TPGVertex*> vertexIDs;
+
+    // Assign an int value to each root
+    int index = 0;
+    for (const auto& root : roots) {
+        vertexIDs[index++] = root;
+    }
+    std::shared_ptr<Learn::Job> previousJob=nullptr;
+    for (const auto& pair : vertexIDs) {
+        auto job = makeJob(pair.second, mode, pair.first);
         this->archive.setRandomSeed(job->getArchiveSeed());
         std::shared_ptr<EvaluationResult> avgScore = this->evaluateJobCL(
-            *tee, *job, generationNumber, mode, this->learningEnvironment);
+            *tee, *job, *previousJob, generationNumber, mode, this->learningEnvironment);
         result.emplace(avgScore, (*job).getRoot());
+        previousJob = job;
     }
 
     return result;

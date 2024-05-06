@@ -83,6 +83,7 @@ namespace Learn {
  * \param[in] tee The TPGExecutionEngine to use.
  * \param[in] job The job containing the root and archiveSeed for
  * the evaluation.
+ * \param[in] previousJob The job containing the angles and vectors of previous job
  * \param[in] generationNumber the integer number of the current
  * generation.
  * \param[in] mode the LearningMode to use during the policy
@@ -100,6 +101,7 @@ namespace Learn {
  */
         std::shared_ptr<EvaluationResult> evaluateJobCL(
             TPG::TPGExecutionEngine& tee, const Job& job,
+            const Job& previousJob,
             uint64_t generationNumber, LearningMode mode,
             LearningEnvironment& le);
 

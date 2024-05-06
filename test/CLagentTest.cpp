@@ -219,6 +219,7 @@ class CLagentTest : public ::testing::Test
      ASSERT_EQ(result.size(), la.getTPGGraph()->getNbRootVertices())
          << "Number of evaluated roots is under the number of roots from the "
             "TPGGraph.";
+
  }
 
 TEST_F(CLagentTest, EvalRootCL)
@@ -238,9 +239,11 @@ TEST_F(CLagentTest, EvalRootCL)
     std::shared_ptr<Learn::EvaluationResult> result;
     auto job = *la.makeJob(la.getTPGGraph()->getRootVertices().at(0),
                            Learn::LearningMode::TRAINING);
+    Learn::Job previousJob=nullptr;
     ASSERT_NO_THROW(
-        result = la.evaluateJobCL(tee, job, 0, Learn::LearningMode::TRAINING, le))
+        result = la.evaluateJobCL(tee, job, previousJob, 0, Learn::LearningMode::TRAINING, le))
                     << "Evaluation from a root failed.";
     ASSERT_LE(result->getResult(), 1.0)
                     << "Average score should not exceed the score of a perfect player.";
+
 }

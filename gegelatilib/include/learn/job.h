@@ -41,6 +41,11 @@
 
 #include "tpg/tpgVertex.h"
 
+struct {
+    double angle;
+    double velocity;
+}typedef stateEOE;
+
 namespace Learn {
     /**
      * \brief This class embeds roots for the simulations.
@@ -66,6 +71,13 @@ namespace Learn {
          * Seed that will be used to randomize archive.
          */
         const uint64_t archiveSeed;
+
+        /**
+         * Vector of previous end of state values
+         */
+        std::vector<stateEOE> vecStateEOE;
+
+
 
       public:
         /// Deleted default constructor.
