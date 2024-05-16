@@ -134,6 +134,11 @@ namespace Learn {
          */
         virtual void setVecStateEOE(const std::vector<stateEOE>& vecPrev) const;
 
+        /**
+         * \brief Setter of the index.
+         */
+        virtual void setIdx(uint64_t newIdx) const;
+
     };
 } // namespace Learn
 

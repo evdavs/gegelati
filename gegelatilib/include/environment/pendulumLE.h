@@ -2,8 +2,8 @@
 // Created by edavies on 03/05/24.
 //
 
-#ifndef GEGELATI_PENDULUM_H
-#define GEGELATI_PENDULUM_H
+#ifndef GEGELATI_PENDULUMLE_H
+#define GEGELATI_PENDULUMLE_H
 
 #include <gegelati.h>
 
@@ -14,7 +14,7 @@
 * under CECILL-C License.
 * Link: https://github.com/preesm/preesm-apps/tree/master/org.ietr.preesm.reinforcement_learning
  */
-class Pendulum : public Learn::LearningEnvironment
+class PendulumLE : public Learn::LearningEnvironment
 {
   private:
     // Constants for the pendulum behavior
@@ -71,18 +71,18 @@ class Pendulum : public Learn::LearningEnvironment
 	*
 	* Attributes angle and velocity are set to 0.0 by default.
      */
-    Pendulum(const std::vector<double>& actions) :
+    PendulumLE(const std::vector<double>& actions) :
           LearningEnvironment(actions.size() * 2 + 1), // see availableActions comment.
           availableActions{ actions },
           currentState{ 2 }
           {};
 
     /**
-	* \brief Copy constructor for the Pendulum.
+	* \brief Copy constructor for the PendulumLE.
 	*
 	* Default copy constructor since all attributes are trivially copyable.
      */
-    Pendulum(const Pendulum& other) = default;
+    PendulumLE(const PendulumLE& other) = default;
 
     /// Getter for angle state
     double getAngle() const;
@@ -91,13 +91,16 @@ class Pendulum : public Learn::LearningEnvironment
     double getVelocity() const;
 
     /// Inherited via LearningEnvironment
-    virtual std::vector<std::reference_wrapper<const Data::DataHandler>> getDataSources() override;
+    std::vector<std::reference_wrapper<const Data::DataHandler>> getDataSources() override;
 
     /// Inherited via LearningEnvironment
-    virtual void reset(size_t seed = 0, Learn::LearningMode mode = Learn::LearningMode::TRAINING,
-                       uint16_t iterationNumber = 0, uint64_t generationNumber = 0,
-                       double resetAngle = 0, double resetVelocity = 0);
+    virtual void reset(size_t seed = 0,
+                       Learn::LearningMode mode = Learn::LearningMode::TRAINING,
+                       uint16_t iterationNumber = 0,
+                       uint64_t generationNumber = 0) override;
 
+    /// reset angle and velocity only
+    virtual void reset(double initialAngle, double initialVelocity);
     /**
 	* \brief Get the action from its associated ID.
 	*
@@ -146,4 +149,4 @@ class Pendulum : public Learn::LearningEnvironment
     virtual bool isTerminal() const override;
 };
 
-#endif // GEGELATI_PENDULUM_H
+#endif // GEGELATI_PENDULUMLE_H

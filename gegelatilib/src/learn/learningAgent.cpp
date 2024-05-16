@@ -124,7 +124,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
     }
 
     // Init results
-    static double result = 0.0;
+    double result = 0.0;
 
     // Evaluate nbIteration times
     for (auto iterationNumber = 0;
@@ -135,7 +135,7 @@ std::shared_ptr<Learn::EvaluationResult> Learn::LearningAgent::evaluateJob(
         uint64_t hash = hasher(generationNumber) ^ hasher(iterationNumber);
 
         // Reset the learning Environment
-        // le.reset(hash, mode, iterationNumber, generationNumber);
+        le.reset(hash, mode, iterationNumber, generationNumber);
 
         uint64_t nbActions = 0;
         while (!le.isTerminal() &&

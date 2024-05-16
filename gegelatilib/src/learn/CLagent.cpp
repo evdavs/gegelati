@@ -3,14 +3,14 @@
 #include <map>
 
 #include "data/hash.h"
+#include "environment/pendulumLE.h"
 #include "learn/evaluationResult.h"
 #include "mutator/rng.h"
 #include "mutator/tpgMutator.h"
 #include "tpg/tpgExecutionEngine.h"
-#include "environment/pendulum.h"
-
 
 #include "learn/CLagent.h"
+#define DECAY_THRESHOLD 0
 
 double Learn::CLagent::calculateWeightDecay(double numScores) const
 {
@@ -28,7 +28,6 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
     TPG::TPGExecutionEngine& tee, const Job& job, const Job& previousJob, uint64_t generationNumber,
     Learn::LearningMode mode, LearningEnvironment& le)
 {
-    bool evalPassed = false;
     // Only consider the first root of jobs as we are not in adversarial mode
     const TPG::TPGVertex* root = job.getRoot();
 
@@ -42,33 +41,39 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
 
     // Init
     double result = 0.0;
-    double prevOutcome =0.0;
+    double prevOutcome;
     std::vector<double> previousScores;
     std::vector<double> earlyScores;
-    std::vector<double> rootRes;
     double numScores = 0.0;
+    static double angleSet;
+    static double veloSet;
+    double scoreFromLast = 0.0;
+    double earlyRes;
+
 
     // Initialize vars
 
     double sum;
 
     for (auto iterationNumber = 0; iterationNumber < this->params.nbIterationsPerPolicyEvaluation; iterationNumber++) {
-
-
+        prevOutcome = 0.0;
+        if (job.getIdx() == 0){
             // Compute a Hash
             Data::Hash<uint64_t> hasher;
             uint64_t hash = hasher(generationNumber) ^ hasher(iterationNumber); //le.init(seed) en gros
 
             // Reset the learning Environment
             le.reset(hash, mode, iterationNumber, generationNumber);
+        }
 
-        if (job.getIdx() > 0) {
-            std::vector<stateEOE> retrievedVec = previousJob.getVecStateEOE();
-            stateEOE desiredElement = retrievedVec[iterationNumber];
-            double resetAngle = desiredElement.angle;
-            double resetVelocity = desiredElement.velocity;
-            ((Pendulum &) le).reset(hash, mode, iterationNumber, generationNumber, resetAngle, resetVelocity);
+        else {
+            std::vector<stateEOE> retrievedVec;
+            retrievedVec.reserve(this->params.nbIterationsPerPolicyEvaluation);
+            retrievedVec = previousJob.getVecStateEOE();
+            double resetAngle = retrievedVec[iterationNumber].angle;
+            double resetVelocity = retrievedVec[iterationNumber].velocity;
 
+            ((PendulumLE &) le).reset(resetAngle, resetVelocity);
         }
         uint64_t nbActions = 0;
         while (!le.isTerminal() &&
@@ -78,94 +83,102 @@ std::shared_ptr<Learn::EvaluationResult> Learn::CLagent::evaluateJobCL(
                 ((const TPG::TPGAction*)tee.executeFromRoot(*root).back())
                     ->getActionID();
 
- //           numScores = previousScores.size() - numScores;
-
-
             le.doAction(actionID);
             nbActions++;
+#ifdef DECAY_THRESHOLD
+            if (nbActions < this->params.decayThreshold){
+                earlyScores.push_back(le.getScore());
 
- /*           for (int i = 0; i < this->params.maxNbActionsPerEval; ++i){
-                previousScores.push_back(i*5);
-            }*/
-//            else{
-    /*                      double scoreFromLast = previousScores.back();
-                          double lastScoreInf = calculateWeightDecay(numScores);
-                          double lastScoreWeighted = scoreFromLast *
-               lastScoreInf;
-                          prevOutcome += le.getScore() * (1-lastScoreInf) +
-               lastScoreWeighted;
-                          previousScores.push_back(prevOutcome);*/
- /*                         double sumEarly = 0.0;
-                          while (nbActions < this->params.decayThreshold){
-                              earlyScores.push_back(le.getScore());
-                          }
-                          for (int i = 0; i < earlyScores.size(); ++i) {
-                              sumEarly += earlyScores[i] * (1-lastScoreInf) +
-               lastScoreWeighted;
-                          }
-                          double avgEarly = sumEarly/earlyScores.size();
-                          rootRes.back()+=avgEarly;*/
-
-//            }
+            }
+#endif
         }
+#ifdef DECAY_THRESHOLD
+        if (job.getIdx() == 0){
+            prevOutcome += le.getScore();
+            previousScores.push_back(prevOutcome);
+            if (!previousScores.empty()) {
+                scoreFromLast = previousScores.back();
+            } else {
+                std::cerr << "problem with previous score : empty" << std::endl;
+            }
+        }
+#else
         prevOutcome += le.getScore();
-        //           if (previousScores.back() <= this->params.maxNbActionsPerEval) {
         previousScores.push_back(prevOutcome);
-        //           }
+#endif
+#ifdef DECAY_THRESHOLD
+        else {
+
+            numScores = this->params.maxNbActionsPerEval;
+            double lastScoreInf = calculateWeightDecay(numScores);
+            double lastScoreWeighted = scoreFromLast * lastScoreInf;
+            prevOutcome = le.getScore() * (1-lastScoreInf) + lastScoreWeighted;
+            previousScores.push_back(prevOutcome);
+            double sumEarly = 0.0;
+
+            for (int i = 0; i < earlyScores.size(); ++i) {
+                sumEarly += earlyScores[i] * (1-lastScoreInf) + lastScoreWeighted;
+            }
+            double avgEarly = sumEarly/earlyScores.size();
+
+            earlyRes = avgEarly;
+        }
+#endif
+
         std::vector<stateEOE> vecPrev(this->params.nbIterationsPerPolicyEvaluation);
-        vecPrev[iterationNumber].angle = ((Pendulum &) le).getAngle();
-        vecPrev[iterationNumber].velocity = ((Pendulum &) le).getVelocity();
+        vecPrev[iterationNumber].angle = ((PendulumLE &) le).getAngle();
+        vecPrev[iterationNumber].velocity = ((PendulumLE &) le).getVelocity();
         job.setVecStateEOE(vecPrev);
 
-
-//        rootRes.push_back(result);
+        //        rootRes.push_back(result);
     }
-            sum = 0.0;
-        for (int i = 0; i < previousScores.size(); ++i) {
-            sum += previousScores[i];
-        }
-        result = sum;
-/*
-// Create the EvaluationResult
-auto evaluationResult =
-    std::shared_ptr<EvaluationResult>(new EvaluationResult(
-        result / (double)params.nbIterationsPerPolicyEvaluation,
-        params.nbIterationsPerPolicyEvaluation));
+    sum = 0.0;
+    for (int i = 0; i < previousScores.size(); ++i) {
+        sum += previousScores[i];
+    }
+    result = sum;
 
-// Combine it with previous one if any
-if (previousEval != nullptr) {
-    *evaluationResult += *previousEval;
-}
-return evaluationResult;
-*/
-
-//    }
+    /*
     // Create the EvaluationResult
-//    if(!evalPassed) {
-        auto evaluationResult = std::shared_ptr<EvaluationResult>(
-            new EvaluationResult(result/ (double)params.nbIterationsPerPolicyEvaluation, params.nbIterationsPerPolicyEvaluation));
-        // Combine it with previous one if any
-        if (previousEval != nullptr) {
-            *evaluationResult += *previousEval;
-        }
-        evalPassed = true;
-        return evaluationResult;
- //  }
-   /*   else{
-        auto evaluationResult = std::shared_ptr<EvaluationResult>(
-            new EvaluationResult(rootRes.end()[-1]/ (double)params.nbIterationsPerPolicyEvaluation, params.nbIterationsPerPolicyEvaluation));
-        // Combine it with previous one if any
-        if (previousEval != nullptr) {
-            *evaluationResult += *previousEval;
-        }
-        evalPassed = true;
-        return evaluationResult;
-    }*/
+    auto evaluationResult =
+        std::shared_ptr<EvaluationResult>(new EvaluationResult(
+            result / (double)params.nbIterationsPerPolicyEvaluation,
+            params.nbIterationsPerPolicyEvaluation));
+
+    // Combine it with previous one if any
+    if (previousEval != nullptr) {
+        *evaluationResult += *previousEval;
+    }
+    return evaluationResult;
+    */
+
+    //    }
+    // Create the EvaluationResult
+    //    if(!evalPassed) {
+    auto evaluationResult = std::shared_ptr<EvaluationResult>(
+        new EvaluationResult(result/ (double)previousScores.size(), params.nbIterationsPerPolicyEvaluation));
+    // Combine it with previous one if any
+    if (previousEval != nullptr) {
+        *evaluationResult += *previousEval;
+    }
+
+    return evaluationResult;
+    //  }
+    /*   else{
+         auto evaluationResult = std::shared_ptr<EvaluationResult>(
+             new EvaluationResult(rootRes.end()[-1]/ (double)params.nbIterationsPerPolicyEvaluation, params.nbIterationsPerPolicyEvaluation));
+         // Combine it with previous one if any
+         if (previousEval != nullptr) {
+             *evaluationResult += *previousEval;
+         }
+         evalPassed = true;
+         return evaluationResult;
+     }*/
 }
 
 std::multimap<std::shared_ptr<Learn::EvaluationResult>, const TPG::TPGVertex*>
 Learn::CLagent::evaluateAllRootsCL(uint64_t generationNumber,
-    Learn::LearningMode mode)
+                                   Learn::LearningMode mode)
 {
     std::multimap<std::shared_ptr<EvaluationResult>, const TPG::TPGVertex*>
         result;
@@ -179,17 +192,15 @@ Learn::CLagent::evaluateAllRootsCL(uint64_t generationNumber,
 
     auto roots = tpg->getRootVertices();
 
-    // Create a map to store IDs and corresponding vertices
-    std::map<int, const TPG::TPGVertex*> vertexIDs;
 
-    // Assign an int value to each root
-    int index = 0;
-    for (const auto& root : roots) {
-        vertexIDs[index++] = root;
-    }
+    std::map<int, const TPG::TPGVertex*> rootIndexMap; // or std::unordered_map<int, TPGVertex*> if order doesn't matter
+
+    // Associate each root vertex with an integer index
     std::shared_ptr<Learn::Job> previousJob=nullptr;
-    for (const auto& pair : vertexIDs) {
-        auto job = makeJob(pair.second, mode, pair.first);
+    for (int i = 0; i < roots.size(); i++) {
+        rootIndexMap[i] = roots[i];
+        int index = i;
+        auto job = makeJob(roots.at(i), mode, index);
         this->archive.setRandomSeed(job->getArchiveSeed());
         std::shared_ptr<EvaluationResult> avgScore = this->evaluateJobCL(
             *tee, *job, *previousJob, generationNumber, mode, this->learningEnvironment);
@@ -232,11 +243,11 @@ void Learn::CLagent::trainOneAgent(
         logger.get().logAfterDecimate();
     }
     nbdel++;
-//    if (nbdel == this->params.totalNbDel) {
-        // Remove worst performing roots
-        decimateWorstRoots(results);
-        // Update the best
-//    }
+    //    if (nbdel == this->params.totalNbDel) {
+    // Remove worst performing roots
+    decimateWorstRoots(results);
+    // Update the best
+    //    }
     // Does a validation or not according to the parameter doValidation
     if (params.doValidation) {
         auto validationResults =
@@ -252,7 +263,7 @@ void Learn::CLagent::trainOneAgent(
 }
 
 uint64_t Learn::CLagent::trainCL(volatile bool& altTraining,
-                                     bool printProgressBar)
+                                 bool printProgressBar)
 {
     const int barLength = 50;
     uint64_t generationNumber = 0;

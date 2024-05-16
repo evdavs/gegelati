@@ -61,3 +61,8 @@ void Learn::Job::setVecStateEOE(const std::vector<stateEOE>& vecPrev) const
     const_cast<std::vector<stateEOE>&>(this->vecStateEOE) = vecPrev;
 }
 
+void Learn::Job::setIdx(uint64_t newIdx) const
+{
+    const_cast<uint64_t&>(this->idx) = newIdx;
+}
+
